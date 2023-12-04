@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cloud_Storage.Interfaces {
+namespace CloudStorage.Interfaces {
     public interface IUser {
         string Id { get; }
         string Username { get; set; }
