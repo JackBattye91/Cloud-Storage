@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CloudStorage.Interfaces {
     public interface IUser {
-        string Id { get; }
+        string Id { get; set; }
         string Username { get; set; }
         string Email { get; set; }
         string Password { get; set; }
