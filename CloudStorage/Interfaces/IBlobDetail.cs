@@ -31,6 +31,6 @@ namespace CloudStorage.Interfaces
         bool Deleted { get; set; }
 
         [JsonProperty(PropertyName = "thumbnail")]
-        string ThumbNail { get; set; }
+        string Thumbnail { get; set; }
     }
 }
