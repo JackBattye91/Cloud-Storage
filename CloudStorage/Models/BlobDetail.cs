@@ -27,6 +27,6 @@ namespace CloudStorage.Models
         public bool Deleted { get; set; } = false;
 
         [JsonProperty(PropertyName = "thumbnail")]
-        public string ThumbNail { get; set; } = string.Empty;
+        public string Thumbnail { get; set; } = string.Empty;
     }
 }
