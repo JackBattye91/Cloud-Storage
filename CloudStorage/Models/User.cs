@@ -20,5 +20,8 @@ namespace CloudStorage.Models
 
         [JsonProperty(PropertyName = "permissions")]
         public Permission Permissions { get; set; } = Permission.None;
+
+        [JsonProperty(PropertyName = "refreshToken")]
+        public string RefreshToken { get; set; } = string.Empty;
     }
 }
