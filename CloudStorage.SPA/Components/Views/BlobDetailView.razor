@@ -1,13 +1,15 @@
-﻿
-<MudStack Class="border border-1">
-    <MudItem Class="text-center">
-        <MudImage Src="@CreateBase64Image()" />
-    </MudItem>
+﻿<a href="/flipbook/@BlobDetail.FileName">
+    <MudStack Class="border border-1">
+        <MudItem Class="text-center">
+            <MudImage Src="@CreateBase64Image()" />
+        </MudItem>
 
-    <MudItem>
-        <MudText Align="Align.Center">@BlobDetail.FileName</MudText>
-    </MudItem>
-</MudStack>
+        <MudItem>
+            <MudText Align="Align.Center">@BlobDetail.FileName</MudText>
+        </MudItem>
+    </MudStack>
+</a>
+
 
 @code {
     [Parameter]
