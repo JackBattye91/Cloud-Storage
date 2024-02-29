@@ -5,7 +5,9 @@ VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorage", "CloudStorage\CloudStorage.csproj", "{6C387A2F-0404-434F-8E3D-D54516306ACD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorage.SPA", "CloudStorage.SPA\CloudStorage.SPA.csproj", "{8F65C60F-D6A0-4E44-BF63-977FEC05608E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorage.API", "CloudStorage.API\CloudStorage.API.csproj", "{206CB7F8-97CB-45EC-A1BF-E01DD4FFDF14}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudStorage.SPA", "CloudStorage.SPA\CloudStorage.SPA.csproj", "{BF043481-4E68-4694-AAED-39D971468059}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,6 +19,14 @@ Global
 		{6C387A2F-0404-434F-8E3D-D54516306ACD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C387A2F-0404-434F-8E3D-D54516306ACD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C387A2F-0404-434F-8E3D-D54516306ACD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{206CB7F8-97CB-45EC-A1BF-E01DD4FFDF14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{206CB7F8-97CB-45EC-A1BF-E01DD4FFDF14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{206CB7F8-97CB-45EC-A1BF-E01DD4FFDF14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{206CB7F8-97CB-45EC-A1BF-E01DD4FFDF14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF043481-4E68-4694-AAED-39D971468059}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF043481-4E68-4694-AAED-39D971468059}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF043481-4E68-4694-AAED-39D971468059}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF043481-4E68-4694-AAED-39D971468059}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
