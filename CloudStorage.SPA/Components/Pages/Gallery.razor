@@ -1,0 +1,75 @@
+﻿@page "/gallery/{showDeleted:bool?}"
+@rendermode InteractiveServer
+@using Views;
+@inject IHttpClientFactory clientFactory;
+@inject IConfiguration configuration;
+
+<h3>Gallery</h3>
+
+<MudContainer>
+    <MudGrid Justify="Justify.FlexStart">
+        @if (loadingBlobDetails)
+        {
+            <MudItem>
+                <MudProgressCircular Indeterminate="true" />
+            </MudItem>
+        }
+        else if (blobDetails?.Count > 0)
+        {
+            @foreach (BlobDetail blobDetail in blobDetails)
+            {
+                <MudItem>
+                    <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
+                </MudItem>
+            }
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public bool? showDeleted { get; set; } = false;
+
+    bool loadingBlobDetails { get; set; } = false;
+    List<BlobDetail>? blobDetails { get; set; } = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetBlobDetails();
+        await base.OnInitializedAsync();
+    }
+
+    protected async Task GetBlobDetails()
+    {
+        loadingBlobDetails = true;
+        try
+        {
+            HttpClient client = clientFactory.CreateClient("api");
+
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "/Blob");
+            if (showDeleted == true)
+            {
+                requestMessage.Headers.Add("deleted", "true");
+            }
+            
+            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                string content = await responseMessage.Content.ReadAsStringAsync();
+                blobDetails = JsonConvert.DeserializeObject<List<BlobDetail>>(content);
+            }
+        }
+        catch (Exception ex)
+        {
+            blobDetails = null;
+        }
+
+        loadingBlobDetails = false;
+    }
+
+    private string CreateBase64Image(string thumnbnailB64)
+    {
+        return $"data:image/jpeg;base64, {thumnbnailB64}";
+    }
+}

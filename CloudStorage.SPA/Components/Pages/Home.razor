@@ -1,0 +1,117 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using System.Text;
+@inject IHttpClientFactory httpClientFactory;
+@inject ISnackbar Snackbar;
+
+<PageTitle>Home</PageTitle>
+
+@if (user == null)
+{
+    <MudForm>
+        <MudTextField @bind-Value="username" InputType="InputType.Email" />
+        <MudTextField @bind-Value="password" InputType="InputType.Password" />
+
+        <MudButton @onclick="submit">Submit</MudButton>
+    </MudForm>
+}
+else
+{
+    <InputFile OnChange="OnFileChanged" />
+}
+
+@if (blobDetails != null)
+{
+    foreach(BlobDetail detail in blobDetails)
+    {
+        if (!string.IsNullOrEmpty(detail.Thumbnail))
+        {
+            <img src="@CreateBase64Image(detail.Thumbnail)"/>
+        }
+    }
+}
+
+@code {
+    IUser? user = null;
+
+    string username { get; set; }// = "jack.battye@hotmail.co.uk";
+    string password { get; set; }// = "Sp@rtan117";
+
+    IList<BlobDetail>? blobDetails = null;
+
+    private async Task submit()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                return;
+            }
+
+            string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+
+            HttpClient client = httpClientFactory.CreateClient("api");
+
+            HttpRequestMessage authRequestMessage = new HttpRequestMessage(HttpMethod.Get, "Authentication");
+            authRequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", basicAuth);
+            HttpResponseMessage authResponse = await client.SendAsync(authRequestMessage);
+
+            if (authResponse.IsSuccessStatusCode)
+            {
+                HttpRequestMessage userRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/User");
+                HttpResponseMessage userResponseMessage = await client.SendAsync(userRequestMessage);
+
+                if (userResponseMessage.IsSuccessStatusCode)
+                {
+                    string userContent = await userResponseMessage.Content.ReadAsStringAsync();
+                    user = JsonConvert.DeserializeObject<User>(userContent);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    private async Task OnFileChanged(InputFileChangeEventArgs eventArgs)
+    {
+        try
+        {
+            int length = (int)eventArgs.File.OpenReadStream().Length;
+
+            byte[] imgData = new byte[length];
+            await eventArgs.File.OpenReadStream().ReadAsync(imgData, 0, length);
+
+            string base64Image = Convert.ToBase64String(imgData);
+
+            FileUpload fileUpload = new FileUpload()
+            {
+                FileName = $"{Guid.NewGuid().ToString()}",
+                ContainerName = "pictures",
+                DataBase64 = base64Image,
+                FileExtension = "png"
+            };
+            string content = JsonConvert.SerializeObject(fileUpload);
+
+            HttpClient client = httpClientFactory.CreateClient("api");
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "/Blob");
+            requestMessage.Content = new StringContent(content, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                string respoinseContent = await responseMessage.Content.ReadAsStringAsync();
+            }
+        }
+        catch(Exception ex)
+        {
+            
+        }
+    }
+
+    private string CreateBase64Image(string thumnbnailB64)
+    {
+        return $"data:image/jpeg;base64, {thumnbnailB64}";
+    }
+}
