@@ -1,0 +1,20 @@
+﻿
+<MudStack Class="border border-1">
+    <MudItem Class="text-center">
+        <MudImage Src="@CreateBase64Image()" />
+    </MudItem>
+
+    <MudItem>
+        <MudText Align="Align.Center">@BlobDetail.FileName</MudText>
+    </MudItem>
+</MudStack>
+
+@code {
+    [Parameter]
+    public IBlobDetail BlobDetail { get; set; }
+
+    private string CreateBase64Image()
+    {
+        return $"data:image/jpeg;base64, {BlobDetail.Thumbnail}";
+    }
+}
