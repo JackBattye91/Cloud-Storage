@@ -19,8 +19,5 @@ namespace CloudStorage.Interfaces
 
         [JsonProperty(PropertyName = "permissions")]
         Permission Permissions { get; set; }
-
-        [JsonProperty(PropertyName = "refreshToken")]
-        string RefreshToken { get; set; }
     }
 }
