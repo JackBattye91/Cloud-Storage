@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IHttpClientFactory clientFactory;
 @inject IConfiguration configuration;
+@inject NavigationManager navManager;
 
 @if (imageSrc == null)
 {
@@ -9,10 +10,13 @@
 }
 else
 {
-    <MudImage Src="@imageSrc" />
+    <MudImage Src="@imageSrc" Style="max-width: 100%" />
 }
 
 @code {
+    [CascadingParameter]
+    public AppState? State { get; set; }
+
     [Parameter]
     public string FileName { get; set; }
 
@@ -21,6 +25,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (State?.CurrentUser == null)
+        {
+            navManager.NavigateTo("/");
+        }
+
         await GetImage();
         await base.OnInitializedAsync();
     }
