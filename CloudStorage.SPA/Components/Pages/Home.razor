@@ -3,11 +3,11 @@
 @using System.Text;
 @inject IHttpClientFactory httpClientFactory;
 @inject ISnackbar Snackbar;
-@inject AppState state;
+@inject ISessionStorageService sessionStorage;
 
 <PageTitle>Home</PageTitle>
 
-@if (state?.CurrentUser == null)
+@if (user == null)
 {
     <MudForm>
         <MudTextField @bind-Value="username" InputType="InputType.Email" />
@@ -18,11 +18,13 @@
 }
 else
 {
-    <InputFile OnChange="OnFileChanged" />
+    <MudButton OnClick="SignOut">Sign Out</MudButton>
 }
 
 @code {
-#if DEBUG
+    User? user { get; set; } = null;
+
+    #if DEBUG
     string username { get; set; } = "jack.battye@hotmail.co.uk";
     string password { get; set; } = "Sp@rtan117";
 #else
@@ -31,6 +33,21 @@ else
 #endif
 
     IList<BlobDetail>? blobDetails = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || user == null)
+        {
+            user = await sessionStorage.GetItemAsync<User>("user");
+
+            if (user != null)
+            {
+                StateHasChanged();
+            }
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
 
     private async Task submit()
     {
@@ -57,7 +74,12 @@ else
                 if (userResponseMessage.IsSuccessStatusCode)
                 {
                     string userContent = await userResponseMessage.Content.ReadAsStringAsync();
-                    state.CurrentUser = JsonConvert.DeserializeObject<User>(userContent);
+                    user = JsonConvert.DeserializeObject<User>(userContent);
+
+                    if(user != null)
+                    {
+                        await sessionStorage.SetItemAsync<User>("user", user);
+                    }
                 }
             }
         }
@@ -99,8 +121,14 @@ else
         }
         catch(Exception ex)
         {
-            
+
         }
+    }
+
+    private async Task SignOut()
+    {
+        await sessionStorage.RemoveItemAsync("user");
+        user = null;
     }
 
 }
