@@ -78,6 +78,9 @@ else
 
                     if(user != null)
                     {
+                        user.Password = string.Empty;
+                        user.PasswordSalt = string.Empty;
+
                         await sessionStorage.SetItemAsync<User>("user", user);
                     }
                 }
