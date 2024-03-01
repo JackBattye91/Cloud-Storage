@@ -19,6 +19,7 @@ builder.Services.AddHttpClient("api", x => {
 
 builder.Services.AddMudServices();
 builder.Services.AddTransient<JwtDelegationHandler>();
+builder.Services.AddSingleton<AppState>();
 
 var app = builder.Build();
 
