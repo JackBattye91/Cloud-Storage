@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject IHttpClientFactory clientFactory;
 @inject IConfiguration configuration;
+@inject AppState state;
 @inject NavigationManager navManager;
 
 @if (imageSrc == null)
@@ -14,9 +15,6 @@ else
 }
 
 @code {
-    [CascadingParameter]
-    public AppState? State { get; set; }
-
     [Parameter]
     public string FileName { get; set; }
 
@@ -25,7 +23,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (State?.CurrentUser == null)
+        if (state.CurrentUser == null)
         {
             navManager.NavigateTo("/");
         }
