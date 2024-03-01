@@ -3,10 +3,11 @@
 @using System.Text;
 @inject IHttpClientFactory httpClientFactory;
 @inject ISnackbar Snackbar;
+@inject AppState state;
 
 <PageTitle>Home</PageTitle>
 
-@if (user == null)
+@if (state?.CurrentUser == null)
 {
     <MudForm>
         <MudTextField @bind-Value="username" InputType="InputType.Email" />
@@ -20,22 +21,14 @@ else
     <InputFile OnChange="OnFileChanged" />
 }
 
-@if (blobDetails != null)
-{
-    foreach(BlobDetail detail in blobDetails)
-    {
-        if (!string.IsNullOrEmpty(detail.Thumbnail))
-        {
-            <img src="@CreateBase64Image(detail.Thumbnail)"/>
-        }
-    }
-}
-
 @code {
-    IUser? user = null;
-
-    string username { get; set; }// = "jack.battye@hotmail.co.uk";
-    string password { get; set; }// = "Sp@rtan117";
+#if DEBUG
+    string username { get; set; } = "jack.battye@hotmail.co.uk";
+    string password { get; set; } = "Sp@rtan117";
+#else
+    string username { get; set; }
+    string password { get; set; }
+#endif
 
     IList<BlobDetail>? blobDetails = null;
 
@@ -64,7 +57,7 @@ else
                 if (userResponseMessage.IsSuccessStatusCode)
                 {
                     string userContent = await userResponseMessage.Content.ReadAsStringAsync();
-                    user = JsonConvert.DeserializeObject<User>(userContent);
+                    state.CurrentUser = JsonConvert.DeserializeObject<User>(userContent);
                 }
             }
         }
@@ -110,8 +103,4 @@ else
         }
     }
 
-    private string CreateBase64Image(string thumnbnailB64)
-    {
-        return $"data:image/jpeg;base64, {thumnbnailB64}";
-    }
 }
