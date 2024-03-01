@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @inject IHttpClientFactory clientFactory;
 @inject IConfiguration configuration;
-@inject AppState state;
+@inject ISessionStorageService sessionStorage;
 @inject NavigationManager navManager;
 
 @if (imageSrc == null)
@@ -20,16 +20,24 @@ else
 
     private string? imageSrc = null;
     private IBlobDetail BlobDetail { get; set; }
+    private User? user { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (state.CurrentUser == null)
+        if (firstRender || user == null)
         {
-            navManager.NavigateTo("/");
+            user = await sessionStorage.GetItemAsync<User>("user");
+
+            if (user == null)
+            {
+                navManager.NavigateTo("/");
+            }
+
+            await GetImage();
+            StateHasChanged();
         }
 
-        await GetImage();
-        await base.OnInitializedAsync();
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     protected async Task GetImage()
