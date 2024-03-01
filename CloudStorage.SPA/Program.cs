@@ -3,6 +3,7 @@ using CloudStorage.SPA.Components;
 using CloudStorage.SPA.Models;
 using Microsoft.AspNetCore.Identity;
 using MudBlazor.Services;
+using Blazored.SessionStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 AppSettings? appSettings = builder.Configuration.Get<AppSettings>();
@@ -19,7 +20,7 @@ builder.Services.AddHttpClient("api", x => {
 
 builder.Services.AddMudServices();
 builder.Services.AddTransient<JwtDelegationHandler>();
-builder.Services.AddSingleton<AppState>();
+builder.Services.AddBlazoredSessionStorage();
 
 var app = builder.Build();
 
