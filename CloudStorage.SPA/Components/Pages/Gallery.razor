@@ -9,42 +9,42 @@
 <MudText Typo="Typo.h3">Gallery</MudText>
 
 <MudContainer>
-        @if (loadingBlobDetails)
-        {
+    @if (loadingBlobDetails)
+    {
+        <MudItem>
+            <MudProgressCircular Indeterminate="true" />
+        </MudItem>
+    }
+    else if (blobDetails?.Count > 0)
+    {
+        <MudGrid>
             <MudItem>
-                <MudProgressCircular Indeterminate="true" />
+                <MudCheckBox @bind-Value="showPrivate" Label="Show Private" />
             </MudItem>
-        }
-        else if (blobDetails?.Count > 0)
-        {
-            <MudGrid>
+            <MudItem>
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                    <ButtonTemplate>
+                        <MudButton HtmlTag="label"
+                                    Variant="Variant.Filled"
+                                    Color="Color.Primary"
+                                    StartIcon="@Icons.Material.Filled.CloudUpload"
+                                    for="@context.Id">
+                            Upload Files
+                        </MudButton>
+                    </ButtonTemplate>
+                </MudFileUpload>
+            </MudItem>
+        </MudGrid>
+        <MudGrid Justify="Justify.FlexStart">
+        @foreach (BlobDetail blobDetail in GetBlobDetailsList())
+            {
                 <MudItem>
-                    <MudCheckBox @bind-Value="showPrivate" Label="Show Private" />
+                    <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
                 </MudItem>
-                <MudItem>
-                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-                        <ButtonTemplate>
-                            <MudButton HtmlTag="label"
-                                       Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.CloudUpload"
-                                        for="@context.Id">
-                                Upload Files
-                            </MudButton>
-                        </ButtonTemplate>
-                    </MudFileUpload>
-                </MudItem>
-            </MudGrid>
-            <MudGrid Justify="Justify.FlexStart">
-            @foreach (BlobDetail blobDetail in GetBlobDetailsList())
-                {
-                    <MudItem>
-                        <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
-                    </MudItem>
-                }
-            </MudGrid>
-        }
-    
+            }
+        </MudGrid>
+    }
+
 </MudContainer>
 
 
@@ -54,11 +54,6 @@
 
     public bool showPrivate { get; set; } = false;
     bool loadingBlobDetails { get; set; } = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
