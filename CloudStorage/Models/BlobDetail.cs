@@ -6,7 +6,7 @@ namespace CloudStorage.Models
     public class BlobDetail : IBlobDetail
     {
         [JsonProperty(PropertyName = "id")]
-        public string Id { get; set; } = string.Empty;
+        public string BlobDetailId { get; set; } = string.Empty;
 
         [JsonProperty(PropertyName = "fileName")]
         public string FileName { get; set; } = string.Empty;
@@ -28,5 +28,8 @@ namespace CloudStorage.Models
 
         [JsonProperty(PropertyName = "thumbnail")]
         public string Thumbnail { get; set; } = string.Empty;
+
+        [JsonProperty(PropertyName = "private")]
+        public bool Private { get; set; } = false;
     }
 }
