@@ -1,18 +1,127 @@
 ﻿@page "/login"
+@rendermode InteractiveServer
+@inject IHttpClientFactory httpClientFactory;
+@inject ISnackbar snackbar;
+@inject ISessionStorageService sessionStorage;
+@inject NavigationManager navManager;
+
 <PageTitle>Login/Register</PageTitle>
 
 <MudGrid Justify="Justify.SpaceEvenly">
-    <MudItem>
+    <MudItem lg="4">
+        <MudText Typo="Typo.h3">Register</MudText>
         <MudForm>
+            <MudTextField @bind-Value="username" InputType="InputType.Text" Label="Username"/>
+            <MudTextField @bind-Value="email" InputType="InputType.Email" Label="Email" />
+            <MudTextField @bind-Value="password" InputType="InputType.Password" Label="Password" />
+            <MudTextField @bind-Value="passwordConfirm" InputType="InputType.Password" Label="Confirm Password" />
 
+            <MudButton @onclick="Register">Register</MudButton>
         </MudForm>
     </MudItem>
 
-    <MudItem>
+    <MudItem lg="4">
+        <MudText Typo="Typo.h3">Login</MudText>
+        <MudForm>
+            <MudTextField @bind-Value="username" InputType="InputType.Text" Label="Username"/>
+            <MudTextField @bind-Value="password" InputType="InputType.Password" Label="Password"/>
 
+            <MudButton @onclick="SignIn">Submit</MudButton>
+        </MudForm>
     </MudItem>
 </MudGrid>
 
 @code {
+    User? user;
+    string username = string.Empty;
+    string password = string.Empty;
+    string passwordConfirm = string.Empty;
+    string email = string.Empty;
 
+    private async Task SignIn()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                return;
+            }
+
+            string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+
+            HttpClient client = httpClientFactory.CreateClient("api");
+
+            HttpRequestMessage authRequestMessage = new HttpRequestMessage(HttpMethod.Get, "Authentication");
+            authRequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", basicAuth);
+            HttpResponseMessage authResponse = await client.SendAsync(authRequestMessage);
+
+            if (authResponse.IsSuccessStatusCode)
+            {
+                HttpRequestMessage userRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/User");
+                HttpResponseMessage userResponseMessage = await client.SendAsync(userRequestMessage);
+
+                if (userResponseMessage.IsSuccessStatusCode)
+                {
+                    string userContent = await userResponseMessage.Content.ReadAsStringAsync();
+                    user = JsonConvert.DeserializeObject<User>(userContent);
+
+                    if (user != null)
+                    {
+                        user.Password = string.Empty;
+                        user.PasswordSalt = string.Empty;
+
+                        await sessionStorage.SetItemAsync<User>("user", user);
+                        navManager.NavigateTo("/");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task Register()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                return;
+            }
+
+            string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+
+            HttpClient client = httpClientFactory.CreateClient("api");
+
+            HttpRequestMessage authRequestMessage = new HttpRequestMessage(HttpMethod.Get, "Authentication");
+            authRequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", basicAuth);
+            HttpResponseMessage authResponse = await client.SendAsync(authRequestMessage);
+
+            if (authResponse.IsSuccessStatusCode)
+            {
+                HttpRequestMessage userRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/User");
+                HttpResponseMessage userResponseMessage = await client.SendAsync(userRequestMessage);
+
+                if (userResponseMessage.IsSuccessStatusCode)
+                {
+                    string userContent = await userResponseMessage.Content.ReadAsStringAsync();
+                    user = JsonConvert.DeserializeObject<User>(userContent);
+
+                    if (user != null)
+                    {
+                        user.Password = string.Empty;
+                        user.PasswordSalt = string.Empty;
+
+                        await sessionStorage.SetItemAsync<User>("user", user);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
 }
