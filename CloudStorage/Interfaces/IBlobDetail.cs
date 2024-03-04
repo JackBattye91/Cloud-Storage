@@ -10,7 +10,7 @@ namespace CloudStorage.Interfaces
     public interface IBlobDetail
     {
         [JsonProperty(PropertyName = "id")]
-        string BlobDetailId { get; set; }
+        string Id { get; set; }
 
         [JsonProperty(PropertyName = "fileName")]
         string FileName { get; set; }
