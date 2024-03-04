@@ -1,14 +1,14 @@
-﻿@page "/gallery/{showDeleted:bool?}"
+﻿@page "/gallery"
 @rendermode InteractiveServer
 @inject IHttpClientFactory clientFactory;
 @inject IConfiguration configuration;
 @inject ISessionStorageService sessionStorage;
+@inject ISnackbar snackbar;
 @inject NavigationManager navManager;
 
-<h3>Gallery</h3>
+<MudText Typo="Typo.h3">Gallery</MudText>
 
 <MudContainer>
-    <MudGrid Justify="Justify.FlexStart">
         @if (loadingBlobDetails)
         {
             <MudItem>
@@ -17,22 +17,42 @@
         }
         else if (blobDetails?.Count > 0)
         {
-            @foreach (BlobDetail blobDetail in blobDetails)
-            {
+            <MudGrid>
                 <MudItem>
-                    <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
+                    <MudCheckBox @bind-Value="showPrivate" Label="Show Private" />
                 </MudItem>
-            }
+                <MudItem>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                        <ButtonTemplate>
+                            <MudButton HtmlTag="label"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload"
+                                        for="@context.Id">
+                                Upload Files
+                            </MudButton>
+                        </ButtonTemplate>
+                    </MudFileUpload>
+                </MudItem>
+            </MudGrid>
+            <MudGrid Justify="Justify.FlexStart">
+            @foreach (BlobDetail blobDetail in GetBlobDetailsList())
+                {
+                    <MudItem>
+                        <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
+                    </MudItem>
+                }
+            </MudGrid>
         }
-    </MudGrid>
+    
 </MudContainer>
+
 
 @code {
     User? user { get; set; } = null;
-    IList<BlobDetail>? blobDetails { get; set; } = null;
+    List<BlobDetail>? blobDetails { get; set; }
 
-    [Parameter]
-    public bool? showDeleted { get; set; } = false;
+    public bool showPrivate { get; set; } = false;
     bool loadingBlobDetails { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
@@ -44,14 +64,26 @@
     {
         if (firstRender || user == null)
         {
-            user = await sessionStorage.GetItemAsync<User>("user");
-
-            if (user == null)
+            try
             {
-                navManager.NavigateTo("/");
+                user = await sessionStorage.GetItemAsync<User>("user");
+
+                if (user == null)
+                {
+                    navManager.NavigateTo("/");
+                }
+
+                if (blobDetails == null)
+                {
+                    await GetBlobDetails();
+                }
+
+                StateHasChanged();
             }
-            await GetBlobDetails();
-            StateHasChanged();
+            catch (Exception ex)
+            {
+                snackbar.Add(ex.Message, Severity.Error);
+            }
         }
 
         await base.OnAfterRenderAsync(firstRender);
@@ -65,30 +97,80 @@
             HttpClient client = clientFactory.CreateClient("api");
 
             HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "/Blob");
-            if (showDeleted == true)
-            {
-                requestMessage.Headers.Add("deleted", "true");
-            }
-
             HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
 
             if (responseMessage.IsSuccessStatusCode)
             {
                 string content = await responseMessage.Content.ReadAsStringAsync();
                 blobDetails = JsonConvert.DeserializeObject<List<BlobDetail>>(content);
-                
+
+                if (blobDetails != null)
+                {
+                    //await sessionStorage.SetItemAsync<string>("blobDetailsList", content);
+                }
             }
         }
         catch (Exception ex)
         {
-            
+            snackbar.Add(ex.Message, Severity.Error);
         }
 
         loadingBlobDetails = false;
     }
 
+    private async void UploadFiles(IBrowserFile file)
+    {
+        try
+        {
+            byte[] data = new byte[(int)file.Size];
+            Stream stream = file.OpenReadStream(long.MaxValue);
+            await stream.ReadAsync(data);
+            string imageB64 = Convert.ToBase64String(data);
+
+            FileUpload fileUpload = new FileUpload()
+            {
+                ContainerName = "pictures",
+                FileExtension = file.Name.Remove(0, file.Name.LastIndexOf('.')),
+                FileName = Guid.NewGuid().ToString(),
+                DataBase64 = imageB64
+            };
+
+            string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
+
+            HttpClient client = clientFactory.CreateClient("api");
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "/Blob");
+            requestMessage.Content = new StringContent(fileUploadContent, System.Text.Encoding.UTF8, "application/json");
+
+            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                await GetBlobDetails();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
     private string CreateBase64Image(string thumnbnailB64)
     {
         return $"data:image/jpeg;base64, {thumnbnailB64}";
+    }
+
+    private List<BlobDetail> GetBlobDetailsList() {
+        if (blobDetails == null)
+        {
+            return new List<BlobDetail>();
+        }
+
+        if (showPrivate == true)
+        {
+            return blobDetails;
+        }
+
+        return blobDetails!.Where(x => x.Private == false).ToList();
     }
 }
