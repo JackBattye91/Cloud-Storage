@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @using System.Text;
 @inject IHttpClientFactory httpClientFactory;
-@inject ISnackbar Snackbar;
+@inject ISnackbar snackbar;
 @inject ISessionStorageService sessionStorage;
 
 <PageTitle>Home</PageTitle>
@@ -88,7 +88,7 @@ else
         }
         catch (Exception ex)
         {
-
+            snackbar.Add(ex.Message, Severity.Error);
         }
     }
     private async Task OnFileChanged(InputFileChangeEventArgs eventArgs)
@@ -124,7 +124,7 @@ else
         }
         catch(Exception ex)
         {
-
+            snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
