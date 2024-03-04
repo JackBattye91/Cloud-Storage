@@ -9,12 +9,6 @@
 
 @if (user == null)
 {
-    <MudForm>
-        <MudTextField @bind-Value="username" InputType="InputType.Email" />
-        <MudTextField @bind-Value="password" InputType="InputType.Password" />
-
-        <MudButton @onclick="submit">Submit</MudButton>
-    </MudForm>
 }
 else
 {
