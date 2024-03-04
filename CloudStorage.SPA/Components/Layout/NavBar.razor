@@ -1,0 +1,62 @@
+﻿@inject ISessionStorageService sessionStorage;
+@rendermode InteractiveServer
+
+<MudAppBar Color="Color.Primary" Fixed="false">
+    <MudIconButton OnClick="() => { showMenuBar = !showMenuBar; }" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
+    <MudSpacer />
+
+    @if (user == null)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/login" StartIcon="@Icons.Material.Filled.Login">Login/Register</MudButton>
+    }
+    else
+    {
+        <a href="/profile"><MudAvatar Color="Color.Primary">@char.ToUpper(user.Username[0])</MudAvatar></a>
+    }
+</MudAppBar>
+
+<MudDrawer @bind-Open="@showMenuBar" Anchor="Anchor.Left" Elevation="1" Variant="@DrawerVariant.Temporary">
+    <MudDrawerHeader>
+        <MudLink Href="/" Typo="Typo.h5">Cloud Storage</MudLink>
+    </MudDrawerHeader>
+    <MudNavMenu>
+        <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
+        <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+    </MudNavMenu>
+</MudDrawer>
+
+@if (user != null)
+{
+    <MudDrawer @bind-Open="@showProfileBar" Anchor="Anchor.Right" Elevation="1" Variant="@DrawerVariant.Temporary">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h5">@user?.Username</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
+            <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+}
+
+@code {
+    bool showMenuBar = false;
+    bool showProfileBar = false;
+    User? user = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || user == null)
+        {
+            try
+            {
+                user = await sessionStorage.GetItemAsync<User>("user");
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}
