@@ -197,7 +197,7 @@
         {
             isOverlayVisible = true;
             overlayImageLoading = true;
-
+            
             HttpClient client = clientFactory.CreateClient("api");
             HttpRequestMessage imageRequest = new HttpRequestMessage(HttpMethod.Get, $"Blob/{pBlobDetail.FileName}");
             HttpResponseMessage imageResponse = await client.SendAsync(imageRequest);
@@ -207,7 +207,7 @@
                 byte[] imageData = await imageResponse.Content.ReadAsByteArrayAsync();
                 string base64Image = Convert.ToBase64String(imageData);
 
-                overlayImageSrc = $"data:image/png;base64, {base64Image}";
+                overlayImageSrc = $"data:image/jpg;base64, {base64Image}";
                 overlayImageLoading = false;
                 StateHasChanged();
             }
