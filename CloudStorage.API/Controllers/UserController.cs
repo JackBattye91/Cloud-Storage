@@ -69,6 +69,8 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
+                    user!.Password = string.Empty;
+                    user!.PasswordSalt = string.Empty;
                     return new OkObjectResult(user);
                 }
             }
