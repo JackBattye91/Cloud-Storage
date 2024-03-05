@@ -1,4 +1,5 @@
 ﻿@inject ISessionStorageService sessionStorage;
+@inject NavigationManager navManager;
 @rendermode InteractiveServer
 
 <MudAppBar Color="Color.Primary" Fixed="false">
@@ -11,7 +12,7 @@
     }
     else
     {
-        <a href="/profile"><MudAvatar Color="Color.Primary">@char.ToUpper(user.Username[0])</MudAvatar></a>
+        <MudAvatar @onclick="SignOut" Color="Color.Primary">@char.ToUpper(user.Username[0])</MudAvatar>
     }
 </MudAppBar>
 
@@ -21,7 +22,12 @@
     </MudDrawerHeader>
     <MudNavMenu>
         <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
-        <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+
+        @if (user != null)
+        {
+            <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+        }
+        
     </MudNavMenu>
 </MudDrawer>
 
@@ -59,5 +65,13 @@
         }
 
         await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task SignOut()
+    {
+        await sessionStorage.RemoveItemAsync("user");
+        user = null;
+        navManager.NavigateTo("/");
+        StateHasChanged();
     }
 }
