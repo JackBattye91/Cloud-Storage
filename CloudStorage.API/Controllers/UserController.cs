@@ -237,5 +237,95 @@ namespace CloudStorage.API.Controllers
 
             return StatusCode(500);
         }
+
+        [HttpGet]
+        [Route("/exists/username/{username}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> UsernameExists([FromRoute(Name = "username")] string pUsername)
+        {
+            IReturnCode rc = new ReturnCode();
+
+            try
+            {
+                if (rc.Success)
+                {
+                    string query = $"SELECT * FROM c WHERE c.username = '{pUsername}'";
+                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, query);
+
+                    if (getUserRc.Success)
+                    {
+                        if (getUserRc.Data?.Count >= 1)
+                        {
+                            return StatusCode(409);
+                        }
+                        else
+                        {
+                            return StatusCode(200);
+                        }
+                    }
+
+                    if (getUserRc.Failed)
+                    {
+                        ErrorWorker.CopyErrors(getUserRc, rc);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                rc.AddError(new Error(2, ex));
+            }
+
+            if (rc.Failed)
+            {
+                ErrorWorker.LogErrors(Logger, rc);
+            }
+
+            return StatusCode(500);
+        }
+
+        [HttpGet]
+        [Route("exists/email/{email}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> EmailExists([FromRoute(Name = "email")] string pEmail)
+        {
+            IReturnCode rc = new ReturnCode();
+
+            try
+            {
+                if (rc.Success)
+                {
+                    string query = $"SELECT * FROM c WHERE c.email = '{pEmail}'";
+                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, query);
+
+                    if (getUserRc.Success)
+                    {
+                        if (getUserRc.Data?.Count >= 1)
+                        {
+                            return StatusCode(409);
+                        }
+                        else
+                        {
+                            return StatusCode(200);
+                        }
+                    }
+
+                    if (getUserRc.Failed)
+                    {
+                        ErrorWorker.CopyErrors(getUserRc, rc);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                rc.AddError(new Error(2, ex));
+            }
+
+            if (rc.Failed)
+            {
+                ErrorWorker.LogErrors(Logger, rc);
+            }
+
+            return StatusCode(500);
+        }
     }
 }
