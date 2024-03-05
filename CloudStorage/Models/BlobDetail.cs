@@ -31,5 +31,8 @@ namespace CloudStorage.Models
 
         [JsonProperty(PropertyName = "private")]
         public bool Private { get; set; } = false;
+
+        [JsonProperty(PropertyName = "created")]
+        public DateTime? Created { get; set; }
     }
 }

@@ -32,5 +32,8 @@ namespace CloudStorage.Interfaces
 
         [JsonProperty(PropertyName = "thumbnail")]
         string Thumbnail { get; set; }
+
+        [JsonProperty(PropertyName = "created")]
+        DateTime? Created { get; set; }
     }
 }
