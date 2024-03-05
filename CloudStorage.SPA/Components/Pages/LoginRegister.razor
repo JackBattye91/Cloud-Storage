@@ -7,8 +7,8 @@
 
 <PageTitle>Login/Register</PageTitle>
 
-<MudGrid Justify="Justify.SpaceEvenly">
-    <MudItem xs="10" sm="10" md="4" lg="4">
+<MudGrid Justify="Justify.SpaceEvenly" Style="max-width: 100vw;">
+    <MudItem xs="12" sm="12" md="4" lg="4">
         <MudText Typo="Typo.h3">Register</MudText>
         <MudForm>
             <MudTextField @bind-Value="username" InputType="InputType.Text" Label="Username"/>
@@ -20,7 +20,7 @@
         </MudForm>
     </MudItem>
 
-    <MudItem xs="10" sm="10" md="4" lg="4">
+    <MudItem xs="12" sm="12" md="4" lg="4">
         <MudText Typo="Typo.h3">Login</MudText>
         <MudForm>
             <MudTextField @bind-Value="username" InputType="InputType.Text" Label="Username"/>
@@ -33,8 +33,14 @@
 
 @code {
     User? user;
+
+    #if DEBUG
+    string username = "jack.battye";
+    string password = "Sp@rtan117";
+    #else
     string username = string.Empty;
     string password = string.Empty;
+    #endif
     string passwordConfirm = string.Empty;
     string email = string.Empty;
 
