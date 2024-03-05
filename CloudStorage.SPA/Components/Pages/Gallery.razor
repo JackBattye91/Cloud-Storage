@@ -46,13 +46,24 @@
 
             @foreach (BlobDetail blobDetail in GetBlobDetailsList())
             {
-                <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
+                <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="() => { ShowImage(blobDetail); }"/>
             }
         </MudGrid>
     }
 
 </MudContainer>
 
+<MudOverlay @bind-Visible="isOverlayVisible" DarkBackground="true" AutoClose="true" ZIndex="99999">
+    @if (overlayImageLoading)
+    {
+        <MudProgressCircular Indeterminate="true"/>
+    }
+    else
+    {
+        <MudImage Src="@overlayImageSrc" Elevation="4" ObjectFit="ObjectFit.Contain" Style="max-height: 95vh; max-width: 100vw;" />
+    }
+    
+</MudOverlay>
 
 @code {
     List<BreadcrumbItem> breadcrumbItems = new List<BreadcrumbItem>() { new BreadcrumbItem("/", "/Gallery") };
@@ -60,7 +71,10 @@
     List<BlobDetail>? blobDetails { get; set; }
 
     public bool showPrivate { get; set; } = false;
-    bool loadingBlobDetails { get; set; } = false;
+    bool loadingBlobDetails { get; set; } = true;
+    bool isOverlayVisible { get; set; } = false;
+    string overlayImageSrc { get; set; } = string.Empty;
+    bool overlayImageLoading { get; set; } = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -157,11 +171,6 @@
         }
     }
 
-    private string CreateBase64Image(string thumnbnailB64)
-    {
-        return $"data:image/jpeg;base64, {thumnbnailB64}";
-    }
-
     private List<BlobDetail> GetBlobDetailsList() {
         if (blobDetails == null)
         {
@@ -179,5 +188,34 @@
     private bool HasPrivateImages()
     {
         return blobDetails?.Any(x => x.Private == true) ?? false;
+    }
+
+
+    private async void ShowImage(IBlobDetail pBlobDetail)
+    {
+        try
+        {
+            isOverlayVisible = true;
+            overlayImageLoading = true;
+
+            HttpClient client = clientFactory.CreateClient("api");
+            HttpRequestMessage imageRequest = new HttpRequestMessage(HttpMethod.Get, $"Blob/{pBlobDetail.FileName}");
+            HttpResponseMessage imageResponse = await client.SendAsync(imageRequest);
+
+            if (imageResponse.IsSuccessStatusCode)
+            {
+                byte[] imageData = await imageResponse.Content.ReadAsByteArrayAsync();
+                string base64Image = Convert.ToBase64String(imageData);
+
+                overlayImageSrc = $"data:image/png;base64, {base64Image}";
+                overlayImageLoading = false;
+                StateHasChanged();
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            isOverlayVisible = false;
+        }
     }
 }
