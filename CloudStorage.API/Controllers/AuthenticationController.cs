@@ -313,7 +313,7 @@ namespace TrackASnack_WebAPI.Controllers
                     DateTime expiresAt = issuedAt.AddSeconds(3600);
 
                     SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(securityKey));
-                    SigningCredentials signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+                    SigningCredentials signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
 
                     IList<Claim> claimsList = new List<Claim>() {
                         new Claim("sub", user!.Id),
