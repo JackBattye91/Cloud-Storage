@@ -3,6 +3,7 @@
 @inject IHttpClientFactory httpClientFactory;
 @inject ISnackbar snackbar;
 @inject ISessionStorageService sessionStorage;
+@inject ILocalStorageService localStorage;
 @inject NavigationManager navManager;
 
 <PageTitle>Login/Register</PageTitle>
@@ -66,6 +67,25 @@
     bool showPassword = false;
     InputType passwordInputType = InputType.Password;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            user = await localStorage.GetItemAsync<User>("user");
+
+            if (user != null)
+            {
+                navManager.NavigateTo("/", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
     private async Task SignIn()
     {
         await LoginForm!.Validate();
@@ -102,7 +122,8 @@
                         user.PasswordSalt = string.Empty;
 
                         await sessionStorage.SetItemAsync<User>("user", user);
-                        navManager.NavigateTo("/");
+                        await localStorage.SetItemAsync<User>("user", user);
+                        navManager.NavigateTo("/", true);
                     }
                 }
             }
@@ -148,6 +169,7 @@
                         user.PasswordSalt = string.Empty;
 
                         await sessionStorage.SetItemAsync<User>("user", user);
+                        await localStorage.SetItemAsync<User>("user", user);
                     }
                 }
             }
