@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
     <PackageReference Include="JB_Library_Common" Version="1.0.36-beta4" />
+    <PackageReference Include="JB_Library_Email" Version="1.0.36-alpha9" />
     <PackageReference Include="JB_Library_NoSqlDatabase" Version="1.0.36-beta4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.2" />
