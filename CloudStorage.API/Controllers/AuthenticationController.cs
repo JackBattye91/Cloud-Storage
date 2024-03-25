@@ -51,7 +51,7 @@ namespace TrackASnack_WebAPI.Controllers
                 // pre-checks
                 if (rc.Success)
                 {
-                    database = appSettings.Database.Database;
+                    database = CloudStorage.API.Consts.Database.DATABASE;
                     passwordPepper = "JackBattyePepperString";
 
                     if (string.IsNullOrEmpty(database) || string.IsNullOrEmpty(passwordPepper))
@@ -164,7 +164,7 @@ namespace TrackASnack_WebAPI.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode getUserRc = await NoSqlWrapper.AddItem(appSettings.Database.Database, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!);
+                    IReturnCode getUserRc = await NoSqlWrapper.AddItem(CloudStorage.API.Consts.Database.DATABASE, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!);
 
                     if (getUserRc.Failed)
                     {
@@ -236,7 +236,7 @@ namespace TrackASnack_WebAPI.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode<IUser> getUserRc = await NoSqlWrapper.GetItem<IUser, User>(appSettings.Database.Database, Database.USER_CONTAINER_NAME, userId!);
+                    IReturnCode<IUser> getUserRc = await NoSqlWrapper.GetItem<IUser, User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, userId!);
 
                     if (getUserRc.Success)
                     {
@@ -252,7 +252,7 @@ namespace TrackASnack_WebAPI.Controllers
                 if (rc.Success)
                 {
                     string query = $"SELECT * FROM c WHERE c.userId = '{userId}'";
-                    IReturnCode<IList<RefreshToken>> getUserRc = await NoSqlWrapper.GetItems<RefreshToken>(appSettings.Database.Database, Database.REFRESH_TOKEN_CONTAINER_NAME, query);
+                    IReturnCode<IList<RefreshToken>> getUserRc = await NoSqlWrapper.GetItems<RefreshToken>(CloudStorage.API.Consts.Database.DATABASE, Database.REFRESH_TOKEN_CONTAINER_NAME, query);
 
                     if (getUserRc.Success)
                     {
@@ -284,7 +284,7 @@ namespace TrackASnack_WebAPI.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode deleteTokenRc = await NoSqlWrapper.DeleteItem<RefreshToken>(appSettings.Database.Database, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!.Id, refreshToken.UserId);
+                    IReturnCode deleteTokenRc = await NoSqlWrapper.DeleteItem<RefreshToken>(CloudStorage.API.Consts.Database.DATABASE, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!.Id, refreshToken.UserId);
 
                     if (deleteTokenRc.Success) {
                         refreshToken = new RefreshToken()
@@ -330,13 +330,13 @@ namespace TrackASnack_WebAPI.Controllers
                         TokenId = Guid.NewGuid().ToString(),
                         WebToken = jwtData,
                         Expires = expiresAt,
-                        RefreshToken = refreshToken!.Token
+                        RefreshToken = refreshToken!.Id
                     };
                 }
 
                 if (rc.Success)
                 {
-                    IReturnCode getUserRc = await NoSqlWrapper.AddItem<RefreshToken>(appSettings.Database.Database, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!);
+                    IReturnCode getUserRc = await NoSqlWrapper.AddItem<RefreshToken>(CloudStorage.API.Consts.Database.DATABASE, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!);
 
                     if (getUserRc.Failed)
                     {
