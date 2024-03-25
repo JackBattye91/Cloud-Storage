@@ -1,4 +1,5 @@
 ﻿@inject ISessionStorageService sessionStorage;
+@inject ILocalStorageService localStorage;
 @inject NavigationManager navManager;
 @rendermode InteractiveServer
 
@@ -52,12 +53,16 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender || user == null)
+        if (user == null)
         {
             try
             {
-                user = await sessionStorage.GetItemAsync<User>("user");
-                StateHasChanged();
+                user = await localStorage.GetItemAsync<User>("user");
+                if (user != null)
+                {
+                    await sessionStorage.SetItemAsync<User>("user", user);
+                    StateHasChanged();
+                }
             }
             catch (Exception ex)
             {
