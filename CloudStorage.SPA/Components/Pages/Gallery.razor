@@ -78,7 +78,6 @@
 </MudOverlay>
 
 @code {
-    string currentFolder = string.Empty;
     List<string> folderPath = new List<string>();
     User? user { get; set; } = null;
     List<BlobDetail>? blobDetails { get; set; }
@@ -96,8 +95,9 @@
 
         if(queryParamters.ContainsKey("route"))
         {
-            currentFolder = queryParamters["route"];
-            folderPath = currentFolder.Split('/').ToList();
+            string currFolder = queryParamters["route"].Trim('/');
+            folderPath = currFolder.Split('/').ToList();
+            StateHasChanged();
         }
 
         return base.OnInitializedAsync();
@@ -225,6 +225,7 @@
     }
 
     private List<BlobDetail> GetBlobDetailsList() {
+
         List<BlobDetail> detailsList = new List<BlobDetail>();
         string route = GetRoute().Trim('/');
         if (string.Equals(route, "__private__"))
@@ -250,7 +251,6 @@
 
     private bool HasPrivateImages()
     {
-        return false;
         return blobDetails?.Any(x => x.Private == true) ?? false;
     }
 
@@ -291,16 +291,16 @@
             breadcrumbs.Add(new BreadcrumbItem("", "/Gallery", false, Icons.Material.Outlined.Folder));
         }
 
-        StringBuilder fullPath = new StringBuilder(currentFolder);
+        StringBuilder fullPath = new StringBuilder();
         foreach(string path in folderPath ?? [])
         {
             if (string.Equals(path, "__private__"))
             {
-                breadcrumbs.Add(new BreadcrumbItem("Private", "/Gallery?route=__private__", false, Icons.Material.Outlined.Folder));
+                breadcrumbs.Add(new BreadcrumbItem("Private", "Gallery?route=__private__", false, Icons.Material.Outlined.Folder));
             }
             else {
                 fullPath.Append($"/{path.Trim('/')}");
-                breadcrumbs.Add(new BreadcrumbItem(path, $"/Gallery?route={fullPath}", false, Icons.Material.Outlined.Folder));
+                breadcrumbs.Add(new BreadcrumbItem(path, $"Gallery?route={fullPath}", false, Icons.Material.Outlined.Folder));
             }
         }
 
