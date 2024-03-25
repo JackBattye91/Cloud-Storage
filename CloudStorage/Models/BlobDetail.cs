@@ -29,6 +29,9 @@ namespace CloudStorage.Models
         [JsonProperty(PropertyName = "thumbnail")]
         public string Thumbnail { get; set; } = string.Empty;
 
+        [JsonProperty(PropertyName = "thumbnailUrl")]
+        public string ThumbnailUrl { get; set; } = string.Empty;
+
         [JsonProperty(PropertyName = "private")]
         public bool Private { get; set; } = false;
 
