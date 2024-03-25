@@ -50,7 +50,7 @@ namespace CloudStorage.API.Controllers
                 {
                     string showDeletedBlobs = pShowDeleted ? "" : "AND c.deleted = false";
                     string query = $"SELECT * FROM c WHERE c.userId = '{userId}' {showDeletedBlobs}";
-                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(AppSettings.Database.Database, Database.PICTURES_CONTAINER_NAME, query);
+                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
 
                     if (getBlobDetailRc.Success)
                     {
@@ -100,7 +100,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     string query = $"SELECT * FROM c WHERE c.fileName = '{fileName}' AND c.userId = '{userId}' AND c.deleted = false";
-                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(AppSettings.Database.Database, Database.PICTURES_CONTAINER_NAME, query);
+                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
 
                     if (getBlobDetailRc.Success)
                     {
@@ -177,21 +177,30 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode<BlobDetail> createBlobDetailRc = await NoSqlWrapper.AddItem<BlobDetail>(AppSettings.Database.Database, Database.PICTURES_CONTAINER_NAME, blobDetail!);
-
-                    if (createBlobDetailRc.Failed)
-                    {
-                        ErrorWorker.CopyErrors(createBlobDetailRc, rc);
-                    }
-                }
-
-                if (rc.Success)
-                {
                     BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blobDetail!.ContainerName);
                     byte[] data = Convert.FromBase64String(pFileUpload.DataBase64);
                     BinaryData binaryData = new BinaryData(data);
                     BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail.BlobName}.{blobDetail.FileExtension}");
                     await blobClient.UploadAsync(binaryData);
+                }
+
+                if (rc.Success)
+                {
+                    BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
+                    byte[] data = Worker.CreateThumbnail(pFileUpload.DataBase64, 256, 256);
+                    BinaryData binaryData = new BinaryData(data);
+                    BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.BlobName}.jpeg");
+                    await blobClient.UploadAsync(binaryData);
+                }
+
+                if (rc.Success)
+                {
+                    IReturnCode<BlobDetail> createBlobDetailRc = await NoSqlWrapper.AddItem<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail!);
+
+                    if (createBlobDetailRc.Failed)
+                    {
+                        ErrorWorker.CopyErrors(createBlobDetailRc, rc);
+                    }
                 }
 
                 return new OkResult();
@@ -227,7 +236,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     string query = $"SELECT * FROM c WHERE c.fileName = '{fileName}' AND c.userId = '{userId}' AND c.deleted = false";
-                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(AppSettings.Database.Database, Database.PICTURES_CONTAINER_NAME, query);
+                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
 
                     if (getBlobDetailRc.Success)
                     {
@@ -250,7 +259,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     blobDetail!.Deleted = true;
-                    IReturnCode<BlobDetail> updateBlobDetailRc = await NoSqlWrapper.UpdateItem<BlobDetail>(AppSettings.Database.Database, Database.PICTURES_CONTAINER_NAME, blobDetail!, blobDetail.Id, blobDetail.ContainerName);
+                    IReturnCode<BlobDetail> updateBlobDetailRc = await NoSqlWrapper.UpdateItem<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail!, blobDetail.Id, blobDetail.ContainerName);
 
                     if (updateBlobDetailRc.Failed)
                     {
@@ -274,7 +283,75 @@ namespace CloudStorage.API.Controllers
         }
 
         [HttpGet]
-        [Route("thumbnail")]
+        [Route("thumbnail/{id}")]
+        public async Task<Stream?> GetThumbnail([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string fileName)
+        {
+            IReturnCode rc = new ReturnCode();
+            BlobDetail? blobDetail = null;
+            string? userId = null;
+
+            try
+            {
+                if (rc.Success)
+                {
+                    JwtPayload jwtPayload = Worker.GetJwtPayloadFromBearerToken(pBearerToken);
+                    userId = jwtPayload.Subject;
+                }
+
+                if (rc.Success)
+                {
+                    string query = $"SELECT * FROM c WHERE c.fileName = '{fileName}' AND c.userId = '{userId}' AND c.deleted = false";
+                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
+
+                    if (getBlobDetailRc.Success)
+                    {
+                        if (getBlobDetailRc.Data?.Count == 1)
+                        {
+                            blobDetail = getBlobDetailRc.Data[0];
+                        }
+                        else
+                        {
+                            throw new JBException("Unable to get blob details");
+                        }
+                    }
+
+                    if (getBlobDetailRc.Failed)
+                    {
+                        ErrorWorker.CopyErrors(getBlobDetailRc, rc);
+                    }
+                }
+
+                if (rc.Success)
+                {
+                    MemoryStream memoryStream = new MemoryStream();
+
+                    BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
+                    BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.ThumbnailUrl}");
+
+                    blobClient.DownloadTo(memoryStream);
+                    memoryStream.Seek(0, SeekOrigin.Begin);
+
+                    Response.ContentType = Worker.GetContentType(blobDetail.FileExtension);
+                    this.Response.ContentType = "image/jpeg";
+                    return memoryStream;
+                }
+            }
+            catch (Exception ex)
+            {
+                rc.AddError(new Error(3, ex));
+            }
+
+            if (rc.Failed)
+            {
+                ErrorWorker.LogErrors(Logger, rc);
+            }
+
+            Response.StatusCode = 500;
+            return null;
+        }
+
+        [HttpGet]
+        [Route("genThumbnails")]
         [AllowAnonymous]
         public async Task<IActionResult> GenerateThumbnails([FromHeader(Name = "ApiKey")] string pApiKey)
         {
@@ -293,7 +370,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode<IList<IBlobDetail>> getBlobDetailsRc = await NoSqlWrapper.GetItems<IBlobDetail, BlobDetail>(AppSettings.Database.Database, Database.PICTURES_CONTAINER_NAME);
+                    IReturnCode<IList<IBlobDetail>> getBlobDetailsRc = await NoSqlWrapper.GetItems<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME);
 
                     if (getBlobDetailsRc.Success)
                     {
@@ -310,36 +387,41 @@ namespace CloudStorage.API.Controllers
                 {
                     foreach(var blob in blobDetailsList)
                     {
-                        if (string.IsNullOrEmpty(blob.Thumbnail))
+                        if (string.IsNullOrEmpty(blob.ThumbnailUrl))
                         {
                             MemoryStream memoryStream = new MemoryStream();
 
-                            BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blob!.ContainerName);
-                            BlobClient blobClient = blobContainerClient.GetBlobClient($"{blob.BlobName}.{blob.FileExtension}");
+                            BlobContainerClient imageBlobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blob!.ContainerName);
+                            BlobClient imageBlobClient = imageBlobContainerClient.GetBlobClient($"{blob.BlobName}.{blob.FileExtension}");
 
-                            blobClient.DownloadTo(memoryStream);
+                            imageBlobClient.DownloadTo(memoryStream);
                             memoryStream.Seek(0, SeekOrigin.Begin);
                             string b64Image = Convert.ToBase64String(memoryStream.ToArray());
 
-                            blob.Thumbnail = Worker.CreateBase64Thumbnail(b64Image, 256, 256);
+
+                            BlobContainerClient thumbnailBlobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
+                            byte[] thumbnailData = Worker.CreateThumbnail(b64Image, 256, 256);
+                            BinaryData thumbnailBinaryData = new BinaryData(thumbnailData);
+                            string thumbnailName = Guid.NewGuid().ToString();
+                            BlobClient thumbnailBlobClient = thumbnailBlobContainerClient.GetBlobClient($"{thumbnailName}.jpeg");
+                            blob.ThumbnailUrl = $"{thumbnailName}.jpeg";
+                            await thumbnailBlobClient.UploadAsync(thumbnailBinaryData);
                         }
                     }
-                   
                 }
 
                 if (rc.Success)
                 {
-                    foreach(var blob in blobDetailsList)
+                    foreach(BlobDetail blobDetail in blobDetailsList)
                     {
-                        IReturnCode<IBlobDetail> createBlobDetailRc = await NoSqlWrapper.UpdateItem<IBlobDetail, BlobDetail>(AppSettings.Database.Database, Database.PICTURES_CONTAINER_NAME, blob, blob.Id, blob.ContainerName);
+                        IReturnCode<IBlobDetail> getBlobDetailsRc = await NoSqlWrapper.UpdateItem<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail, blobDetail.Id, blobDetail.ContainerName);
 
-                        if (createBlobDetailRc.Failed)
+                        if (getBlobDetailsRc.Failed)
                         {
-                            ErrorWorker.CopyErrors(createBlobDetailRc, rc);
+                            ErrorWorker.CopyErrors(getBlobDetailsRc, rc);
                         }
                     }
                 }
-
 
                 return new OkResult();
             }
