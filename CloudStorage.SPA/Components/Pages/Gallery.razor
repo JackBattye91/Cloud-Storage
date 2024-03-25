@@ -19,12 +19,8 @@
     else if (blobDetails?.Count > 0)
     {
         <MudBreadcrumbs Items="GetBreadcrumbs()" />
+        
         <MudGrid>
-            <!--
-            <MudItem>
-                <MudCheckBox @bind-Value="showPrivate" Label="Show Private" />
-            </MudItem>
-            -->
             <MudItem>
                 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
                     <ButtonTemplate>
@@ -40,12 +36,17 @@
             </MudItem>
         </MudGrid>
 
+        @if (folderPath.Count != 0)
+        {
+            <MudGrid>
+                <MudItem>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick='() => { UpdateFolderPath(".."); }'>Back</MudButton>
+                </MudItem>
+            </MudGrid>
+        }
+        
         <MudGrid Justify="Justify.FlexStart">
-            @if (folderPath.Count != 0)
-            {
-                <CloudStorage.SPA.Components.Views.FolderView FolderName=".." OnClick='() => { UpdateFolderPath(".."); }' />
-            }
-            else if (HasPrivateImages())
+            @if (folderPath.Count == 0 && HasPrivateImages())
             {
                 <CloudStorage.SPA.Components.Views.FolderView FolderName="Private" OnClick='() => { folderPath.Clear(); folderPath.Add("__private__");  }' />
             }
