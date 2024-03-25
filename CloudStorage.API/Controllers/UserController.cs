@@ -47,7 +47,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     string query = $"SELECT * FROM c WHERE c.id = '{userId}'";
-                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, query);
+                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, query);
 
                     if (getUserRc.Success)
                     {
@@ -110,7 +110,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     string query = $"SELECT * FROM c WHERE c.userId = '{userId}'";
-                    IReturnCode<User> getUserRc = await NoSqlWrapper.UpdateItem<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, pUser, pUser.Id, pUser.Id);
+                    IReturnCode<User> getUserRc = await NoSqlWrapper.UpdateItem<User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, pUser, pUser.Id, pUser.Id);
 
                     if (getUserRc.Success)
                     {
@@ -164,7 +164,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     pUser.Id = Guid.NewGuid().ToString();
-                    IReturnCode<User> getUserRc = await NoSqlWrapper.AddItem<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, pUser);
+                    IReturnCode<User> getUserRc = await NoSqlWrapper.AddItem<User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, pUser);
 
                     if (getUserRc.Success)
                     {
@@ -212,7 +212,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode getUserRc = await NoSqlWrapper.DeleteItem<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, pUserId, pUserId);
+                    IReturnCode getUserRc = await NoSqlWrapper.DeleteItem<User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, pUserId, pUserId);
 
                     if (getUserRc.Failed)
                     {
@@ -250,7 +250,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     string query = $"SELECT * FROM c WHERE c.username = '{pUsername}'";
-                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, query);
+                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, query);
 
                     if (getUserRc.Success)
                     {
@@ -295,7 +295,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     string query = $"SELECT * FROM c WHERE c.email = '{pEmail}'";
-                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(AppSettings.Database.Database, Database.USER_CONTAINER_NAME, query);
+                    IReturnCode<IList<User>> getUserRc = await NoSqlWrapper.GetItems<User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, query);
 
                     if (getUserRc.Success)
                     {
