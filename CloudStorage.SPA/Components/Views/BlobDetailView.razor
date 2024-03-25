@@ -1,11 +1,13 @@
-﻿<MudItem xs="6" sm="4" md="3" lg="3" @onclick="OnClick">
+﻿@inject IHttpClientFactory clientfactory;
+
+<MudItem xs="6" sm="4" md="3" lg="3" @onclick="OnClick">
     <MudStack Class="pb-5">
         <MudItem Class="text-center">
             <MudImage Style="height: 100px; max-width: 100%" Src="@CreateBase64Image()" ObjectFit="ObjectFit.Contain" />
         </MudItem>
 
         <MudItem>
-            <MudText Align="Align.Center">@BlobDetail.FileName</MudText>
+            <MudText Align="Align.Center">@FileName</MudText>
             </MudItem>
         </MudStack>
 </MudItem>
@@ -18,6 +20,32 @@
     [Parameter]
     public EventCallback<MouseEventArgs> OnClick { get; set; }
 
+    private string FileName {
+        get {
+            int start = BlobDetail.FileName.LastIndexOf('/');
+            return start == -1 ? BlobDetail.FileName : BlobDetail.FileName.Substring(start + 1);
+        }
+    }
+
+    private async Task<string?> GetThumbnail()
+    {
+        try
+        {
+            HttpClient client = clientfactory.CreateClient("api");
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/Blob/thumbnail/{BlobDetail.FileName}");
+
+            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+            if (responseMessage.IsSuccessStatusCode)
+            {
+            }
+        }
+        catch (Exception ex)
+        {
+            
+        }
+        
+        return null;
+    }
     private string CreateBase64Image()
     {
         return $"data:image/jpeg;base64, {BlobDetail.Thumbnail}";
