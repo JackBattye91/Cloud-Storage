@@ -7,7 +7,6 @@
 @inject NavigationManager navManager;
 <PageTitle>Gallery</PageTitle>
 
-
 <MudContainer>
     <MudText Typo="Typo.h3">Gallery</MudText>
     
@@ -19,7 +18,7 @@
     }
     else if (blobDetails?.Count > 0)
     {
-        <MudBreadcrumbs Items="breadcrumbItems" />
+        <MudBreadcrumbs Items="GetBreadcrumbs()" />
         <MudGrid>
             <!--
             <MudItem>
@@ -40,10 +39,20 @@
                 </MudFileUpload>
             </MudItem>
         </MudGrid>
+
         <MudGrid Justify="Justify.FlexStart">
-            @if (HasPrivateImages())
+            @if (breadcrumbs.Count != 0)
             {
-                
+                <CloudStorage.SPA.Components.Views.FolderView FolderName=".." OnClick='() => { UpdateFolderPath(".."); }' />
+            }
+            else if (HasPrivateImages())
+            {
+                <CloudStorage.SPA.Components.Views.FolderView FolderName="Private" OnClick='() => { breadcrumbs.Clear(); breadcrumbs.Add("__private__");  }' />
+            }
+
+            @foreach (string folderName in GetFolders())
+            {
+                <CloudStorage.SPA.Components.Views.FolderView FolderName="@folderName" OnClick="() => { UpdateFolderPath(folderName); }" />
             }
 
             @foreach (BlobDetail blobDetail in GetBlobDetailsList())
@@ -68,7 +77,7 @@
 </MudOverlay>
 
 @code {
-    List<BreadcrumbItem> breadcrumbItems = new List<BreadcrumbItem>() { new BreadcrumbItem("/", "/Gallery") };
+    List<string> breadcrumbs = new List<string>();
     User? user { get; set; } = null;
     List<BlobDetail>? blobDetails { get; set; }
 
@@ -173,18 +182,48 @@
         }
     }
 
+    private List<string> GetFolders()
+    {
+        List<string> folderList = new List<string>();
+        string route = GetRoute();
+
+        foreach(BlobDetail detail in blobDetails?.Where(x => x.FileName.StartsWith(route)).ToList() ?? [])
+        {
+            int start = detail.FileName.Trim('/').LastIndexOf('/');
+
+            if (start != -1)
+            {
+                string folder = detail.FileName.Substring(0, start);
+                folderList.Add(folder);
+            }
+
+        }
+
+        return folderList;
+    }
+
     private List<BlobDetail> GetBlobDetailsList() {
-        if (blobDetails == null)
+        List<BlobDetail> detailsList = new List<BlobDetail>();
+        string route = GetRoute().Trim('/');
+        if (string.Equals(route, "__private__"))
         {
-            return new List<BlobDetail>();
+            return blobDetails?.Where(x => x.Private == true).ToList() ?? [];
         }
 
-        if (showPrivate == true)
+        foreach(BlobDetail detail in blobDetails ?? [])
         {
-            return blobDetails;
+            if (detail.FileName.StartsWith(route) && detail.Private == false)
+            {
+                string remainingFileName = detail.FileName.Remove(0, route.Length).Trim('/');
+
+                if (!remainingFileName.Contains("/"))
+                {
+                    detailsList.Add(detail);
+                }
+            }
         }
 
-        return blobDetails!.Where(x => x.Private == false).ToList();
+        return detailsList;
     }
 
     private bool HasPrivateImages()
@@ -192,14 +231,13 @@
         return blobDetails?.Any(x => x.Private == true) ?? false;
     }
 
-
     private async void ShowImage(IBlobDetail pBlobDetail)
     {
         try
         {
             isOverlayVisible = true;
             overlayImageLoading = true;
-            
+
             HttpClient client = clientFactory.CreateClient("api");
             HttpRequestMessage imageRequest = new HttpRequestMessage(HttpMethod.Get, $"Blob/{pBlobDetail.FileName}");
             HttpResponseMessage imageResponse = await client.SendAsync(imageRequest);
@@ -213,11 +251,46 @@
                 overlayImageLoading = false;
                 StateHasChanged();
             }
-            
+
         }
         catch (Exception ex)
         {
             isOverlayVisible = false;
         }
+    }
+
+    private List<BreadcrumbItem> GetBreadcrumbs()
+    {
+        if (breadcrumbs?.Count() > 0 && string.Equals(breadcrumbs[0], "__private__"))
+        {
+            return [];
+        }
+
+        StringBuilder path = new StringBuilder();
+        return breadcrumbs?.Select(x => { path.Append($"/{path}"); return new BreadcrumbItem(x, path.ToString(), true, Icons.Material.Outlined.Folder); }).ToList() ?? [];
+    }
+
+    private void UpdateFolderPath(string pPath)
+    {
+        if (string.Equals(pPath.Trim(), "..") && breadcrumbs.Count() > 0)
+        {
+            breadcrumbs.RemoveAt(breadcrumbs.Count() - 1);
+        }
+        else
+        {
+            breadcrumbs.Add(pPath);
+        }
+        StateHasChanged();
+    }
+
+    private string GetRoute()
+    {
+        StringBuilder route = new StringBuilder();
+        foreach (string path in breadcrumbs)
+        {
+            route.Append($"/{path}");
+        }
+
+        return route.ToString();
     }
 }
