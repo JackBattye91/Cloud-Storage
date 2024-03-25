@@ -12,7 +12,7 @@ AppSettings? appSettings = builder.Configuration.Get<AppSettings>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-
+builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("api", x => {
     x.BaseAddress = new Uri(appSettings.ApiBaseUrl);
 }).AddHttpMessageHandler<JwtDelegationHandler>();
