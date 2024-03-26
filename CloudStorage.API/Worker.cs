@@ -79,24 +79,7 @@ namespace CloudStorage.API
 
         public static string CreateBase64Thumbnail(string pImageBase64, int pMaxWidth, int pMaxHeight)
         {
-            byte[] imageData = Convert.FromBase64String(pImageBase64);
-
-            Image baseImage = Image.Load(imageData);
-
-            double ratioX = (double)pMaxWidth / baseImage.Width;
-            double ratioY = (double)pMaxHeight / baseImage.Height;
-            double ratio = Math.Min(ratioX, ratioY);
-
-            int newWidth = (int)(baseImage.Width * ratio);
-            int newHeight = (int)(baseImage.Height * ratio);
-
-            baseImage.Mutate(x => x.Resize(newWidth, newHeight));
-
-            using MemoryStream mStream = new MemoryStream();
-            baseImage.Save(mStream, new JpegEncoder());
-
-            byte[] thumbnailData = mStream.ToArray();
-            return Convert.ToBase64String(thumbnailData);
+            return Convert.ToBase64String(CreateThumbnail(pImageBase64, pMaxWidth, pMaxHeight));
         }
 
         public static byte[] CreateThumbnail(string pImageBase64, int pMaxWidth, int pMaxHeight)
