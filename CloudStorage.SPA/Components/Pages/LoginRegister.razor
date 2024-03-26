@@ -5,6 +5,7 @@
 @inject ISessionStorageService sessionStorage;
 @inject ILocalStorageService localStorage;
 @inject NavigationManager navManager;
+@inject ProtectedLocalStorage protectedLocalStorage
 
 <PageTitle>Login/Register</PageTitle>
 
@@ -71,7 +72,7 @@
     {
         try
         {
-            user = await localStorage.GetItemAsync<User>("user");
+            user = (await protectedLocalStorage.GetAsync<User>("user")).Value;
 
             if (user != null)
             {
@@ -80,7 +81,7 @@
         }
         catch (Exception ex)
         {
-            
+
         }
 
         await base.OnAfterRenderAsync(firstRender);
@@ -108,6 +109,13 @@
 
             if (authResponse.IsSuccessStatusCode)
             {
+                string authContent = await authResponse.Content.ReadAsStringAsync();
+                Token? token = JsonConvert.DeserializeObject<Token>(authContent);
+                if (token != null)
+                {
+                    await protectedLocalStorage.SetAsync(Consts.Storage.TOKEN, token);
+                }
+
                 HttpRequestMessage userRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/User");
                 HttpResponseMessage userResponseMessage = await client.SendAsync(userRequestMessage);
 
@@ -121,8 +129,7 @@
                         user.Password = string.Empty;
                         user.PasswordSalt = string.Empty;
 
-                        await sessionStorage.SetItemAsync<User>("user", user);
-                        await localStorage.SetItemAsync<User>("user", user);
+                        await protectedLocalStorage.SetAsync(Consts.Storage.USER, user);
                         navManager.NavigateTo("/", true);
                     }
                 }
@@ -168,8 +175,7 @@
                         user.Password = string.Empty;
                         user.PasswordSalt = string.Empty;
 
-                        await sessionStorage.SetItemAsync<User>("user", user);
-                        await localStorage.SetItemAsync<User>("user", user);
+                        await protectedLocalStorage.SetAsync("user", user);
                     }
                 }
             }
