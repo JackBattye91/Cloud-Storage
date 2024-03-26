@@ -17,19 +17,10 @@
         <MudItem Style="margin: auto 0;">
             <MudGrid>
                 <MudItem>
-                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0">
-                        <ButtonTemplate>
-                            <MudButton HtmlTag="label"
-                                       Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.CloudUpload"
-                                       for="@context.Id">
-                                Upload Files
-                            </MudButton>
-                        </ButtonTemplate>
-                    </MudFileUpload>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="ShowUploadFiles">
+                        Upload Image
+                    </MudButton>
                 </MudItem>
-
                 <MudItem>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Folder">
                         Create Folder
@@ -77,6 +68,18 @@
 
 </MudContainer>
 
+@if (uploadDrawVisible) {
+    <MudDrawer @bind-Open="uploadDrawVisible" Anchor="Anchor.Right" Elevation="1" Fixed="true" Variant="DrawerVariant.Temporary" ClipMode="DrawerClipMode.Never">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h5">Upload Images</MudText>
+        </MudDrawerHeader>
+        <MudDrawerContainer Class="p-1">
+            <CloudStorage.SPA.Components.Views.FileUploadDetailsView OnFileUploaded="async() => { uploadDrawVisible = false; await GetBlobDetails();  StateHasChanged(); }"/>
+        </MudDrawerContainer>
+    </MudDrawer>
+}
+
+
 <MudOverlay @bind-Visible="isOverlayVisible" DarkBackground="true" AutoClose="true" ZIndex="99999">
     @if (overlayImageLoading)
     {
@@ -85,12 +88,19 @@
     else
     {
         <MudImage Src="@overlayImageSrc" Elevation="4" ObjectFit="ObjectFit.Contain" Style="max-height: 95vh; max-width: 100vw;" />
+
+        <MudStack Style="position: absolute; top: 0; right: 0; background-color: #00000055" Justify="Justify.Center">
+            <MudItem>
+                <MudIconButton Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick='() => { DeleteImage(); }' />
+            </MudItem>
+        </MudStack>
     }
     
 </MudOverlay>
 
 @code {
-    List<string> folderPath = new List<string>();
+    [CascadingParameter]
+    public List<string> folderPath { get; set; } = new List<string>();
     User? user { get; set; } = null;
     List<BlobDetail>? blobDetails { get; set; }
 
@@ -99,6 +109,8 @@
     bool isOverlayVisible { get; set; } = false;
     string overlayImageSrc { get; set; } = string.Empty;
     bool overlayImageLoading { get; set; } = false;
+    bool uploadDrawVisible = false;
+    BlobDetail? overlayBlobDetail { get; set; }
 
     protected override Task OnInitializedAsync()
     {
@@ -119,6 +131,7 @@
     {
         if (firstRender || user == null)
         {
+
             try
             {
                 user = (await protectedStorage.GetAsync<User>(Consts.Storage.USER)).Value;
@@ -173,43 +186,9 @@
         loadingBlobDetails = false;
     }
 
-    private async void UploadFiles(IBrowserFile file)
+    private void ShowUploadFiles()
     {
-        try
-        {
-            long fileSize = file.Size;
-            byte[] data = new byte[(int)file.Size];
-            Stream stream = file.OpenReadStream(file.Size);
-            await stream.ReadAsync(data, 0, (int)fileSize);
-            string imageB64 = Convert.ToBase64String(data);
-
-            FileUpload fileUpload = new FileUpload()
-            {
-                ContainerName = "pictures",
-                FileExtension = file.Name.Remove(0, file.Name.LastIndexOf('.')),
-                FileName = Guid.NewGuid().ToString(),
-                DataBase64 = imageB64,
-                IsPrivate = folderPath.Contains("__private__")
-            };
-
-            string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
-
-            HttpClient client = clientFactory.CreateClient("api");
-            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "/Blob");
-            requestMessage.Content = new StringContent(fileUploadContent, System.Text.Encoding.UTF8, "application/json");
-
-            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
-
-            if (responseMessage.IsSuccessStatusCode)
-            {
-                await GetBlobDetails();
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            snackbar.Add(ex.Message, Severity.Error);
-        }
+        uploadDrawVisible = !uploadDrawVisible;
     }
 
     private List<string> GetFolders()
@@ -268,7 +247,7 @@
         return blobDetails?.Any(x => x.Private == true) ?? false;
     }
 
-    private async void ShowImage(IBlobDetail pBlobDetail)
+    private async void ShowImage(BlobDetail pBlobDetail)
     {
         try
         {
@@ -286,9 +265,9 @@
 
                 overlayImageSrc = $"data:image/jpg;base64, {base64Image}";
                 overlayImageLoading = false;
+                overlayBlobDetail = pBlobDetail;
                 StateHasChanged();
             }
-
         }
         catch (Exception ex)
         {
@@ -353,6 +332,17 @@
         {
             string[] parts = pNewRoute.Trim('/').Split('/');
             folderPath = new List<string>(parts);
+        }
+    }
+
+    private void DeleteImage()
+    {
+        if (overlayBlobDetail != null)
+        {
+            blobDetails?.Remove(overlayBlobDetail);
+            isOverlayVisible = false;
+            overlayBlobDetail = null;
+            StateHasChanged();
         }
     }
 }
