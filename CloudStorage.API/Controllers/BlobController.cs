@@ -240,6 +240,7 @@ namespace CloudStorage.API.Controllers
                     blobDetail.Thumbnail = Worker.CreateBase64Thumbnail(pFileUpload.DataBase64, 256, 256);
                     blobDetail.Private = pFileUpload.IsPrivate;
                     blobDetail.IV = pFileUpload.IsPrivate ? Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)) : null;
+                    blobDetail.Created = DateTime.UtcNow;
                 }
 
                 if (rc.Success)
