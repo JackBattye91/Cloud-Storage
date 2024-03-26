@@ -1,5 +1,6 @@
 ﻿@inject ISessionStorageService sessionStorage;
 @inject ILocalStorageService localStorage;
+@inject ProtectedLocalStorage protectedLocalStorage
 @inject NavigationManager navManager;
 @rendermode InteractiveServer
 
@@ -53,20 +54,19 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (user == null)
+        try
         {
-            try
+            if (user == null)
             {
-                user = await localStorage.GetItemAsync<User>("user");
+                user = (await protectedLocalStorage.GetAsync<User>(Consts.Storage.USER)).Value;
                 if (user != null)
                 {
-                    await sessionStorage.SetItemAsync<User>("user", user);
                     StateHasChanged();
                 }
             }
-            catch (Exception ex)
-            {
-            }
+        }
+        catch (Exception ex)
+        {
         }
 
         await base.OnAfterRenderAsync(firstRender);
@@ -74,7 +74,7 @@
 
     private async Task SignOut()
     {
-        await sessionStorage.RemoveItemAsync("user");
+        await sessionStorage.RemoveItemAsync(Consts.Storage.USER);
         user = null;
         navManager.NavigateTo("/");
         StateHasChanged();
