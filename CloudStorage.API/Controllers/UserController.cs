@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CloudStorage.API.Controllers
 {
@@ -164,6 +166,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     pUser.Id = Guid.NewGuid().ToString();
+                    pUser.PrivateKey = Encoding.UTF8.GetString(RandomNumberGenerator.GetBytes(16));
                     IReturnCode<User> getUserRc = await NoSqlWrapper.AddItem<User>(CloudStorage.API.Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, pUser);
 
                     if (getUserRc.Success)
