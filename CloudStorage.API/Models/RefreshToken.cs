@@ -10,9 +10,6 @@ namespace CloudStorage.API.Models
         [JsonProperty(PropertyName = "userId")]
         public string UserId { get; set; } = string.Empty;
 
-        [JsonProperty(PropertyName = "token")]
-        public string Token { get; set; } = string.Empty;
-
         [JsonProperty(PropertyName = "created")]
         public DateTime DateCreated { get; set; } = DateTime.MinValue;
     }

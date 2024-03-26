@@ -125,7 +125,6 @@ namespace TrackASnack_WebAPI.Controllers
                     {
                         Id = Guid.NewGuid().ToString(),
                         UserId = user!.Id,
-                        Token = Guid.NewGuid().ToString(),
                         DateCreated = DateTime.UtcNow
                     };
                 }
@@ -158,7 +157,7 @@ namespace TrackASnack_WebAPI.Controllers
                         TokenId = Guid.NewGuid().ToString(),
                         WebToken = jwtData,
                         Expires = expiresAt,
-                        RefreshToken = refreshToken!.Token
+                        RefreshToken = refreshToken!.Id
                     };
                 }
 
@@ -274,7 +273,7 @@ namespace TrackASnack_WebAPI.Controllers
 
                 if (rc.Success)
                 {
-                    refreshToken = refreshTokensList!.Where(x => string.Equals(x.Token, pRefreshToken, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+                    refreshToken = refreshTokensList!.Where(x => string.Equals(x.Id, pRefreshToken, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 
                     if (refreshToken == null)
                     {
@@ -284,14 +283,13 @@ namespace TrackASnack_WebAPI.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode deleteTokenRc = await NoSqlWrapper.DeleteItem<RefreshToken>(CloudStorage.API.Consts.Database.DATABASE, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!.Id, refreshToken.UserId);
+                    IReturnCode deleteTokenRc = await NoSqlWrapper.DeleteItem<RefreshToken>(Database.DATABASE, Database.REFRESH_TOKEN_CONTAINER_NAME, refreshToken!.Id, refreshToken.UserId);
 
                     if (deleteTokenRc.Success) {
                         refreshToken = new RefreshToken()
                         {
                             Id = Guid.NewGuid().ToString(),
                             UserId = userId!,
-                            Token = Guid.NewGuid().ToString(),
                             DateCreated = DateTime.UtcNow,
                         };
                     }
