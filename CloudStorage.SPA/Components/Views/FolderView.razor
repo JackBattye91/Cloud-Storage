@@ -2,7 +2,7 @@
 <MudItem xs="6" sm="4" md="3" lg="3" @onclick="OnClick">
     <MudStack Class="pb-5">
         <MudItem Class="text-center">
-            <MudIcon Style="height: 100px; max-width: 100%" Icon="@Icons.Material.Filled.Folder" />
+            <MudIcon Style="height: 100px; max-width: 100%" Icon="@(IsBackFolder ? Icons.Material.Outlined.KeyboardReturn : Icons.Material.Filled.Folder)" />
         </MudItem>
 
         <MudItem>
@@ -17,4 +17,7 @@
 
     [Parameter]
     public string FolderName { get; set; } = "New Folder";
+
+    [Parameter]
+    public bool IsBackFolder { get; set; } = false;
 }
