@@ -177,9 +177,10 @@
     {
         try
         {
+            long fileSize = file.Size;
             byte[] data = new byte[(int)file.Size];
-            Stream stream = file.OpenReadStream(long.MaxValue);
-            await stream.ReadAsync(data);
+            Stream stream = file.OpenReadStream(file.Size);
+            await stream.ReadAsync(data, 0, (int)fileSize);
             string imageB64 = Convert.ToBase64String(data);
 
             FileUpload fileUpload = new FileUpload()
