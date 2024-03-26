@@ -2,17 +2,21 @@
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using CloudStorage.Models;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace CloudStorage.SPA.Models
 {
     public class JwtDelegationHandler : DelegatingHandler
     {
+        private readonly ProtectedLocalStorage LocalStorage;
         private static Token? Token { get; set; }
         private AppSettings AppSettings { get; set; }
 
-        public JwtDelegationHandler(IOptions<AppSettings> pAppSettings)
+        public JwtDelegationHandler(IOptions<AppSettings> pAppSettings, ProtectedLocalStorage pProtectedLocalStorage)
         {
             AppSettings = pAppSettings.Value;
+            LocalStorage = pProtectedLocalStorage;
         }
 
         protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -35,7 +39,7 @@ namespace CloudStorage.SPA.Models
                 return authResponse; 
             }
 
-            if (IsValidJwt())
+            if (await IsValidJwt())
             {
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token!.WebToken);
             }
@@ -43,29 +47,34 @@ namespace CloudStorage.SPA.Models
             return await base.SendAsync(request, cancellationToken);
         }
 
-        private bool IsValidJwt() { 
+        private async Task<bool> IsValidJwt() { 
             if (Token == null)
             {
-                return false;
+                ProtectedBrowserStorageResult<Token> tokenResult = await LocalStorage.GetAsync<Token>(Consts.Storage.TOKEN);
+                Token = tokenResult.Value;
             }
+            await UpdateJwt();
 
-            return true;
+            return (Token != null);
         }
 
         private async Task UpdateJwt()
         {
-            if (Token == null)
+            if (Token?.Expires <= DateTime.UtcNow)
             {
-                throw new Exception();
-            }
-
-            if (Token.Expires > DateTime.UtcNow)
-            {
-                string authUri = Path.Combine(AppSettings.ApiBaseUrl, "Authentication");
+                string authUri = Path.Combine(AppSettings.ApiBaseUrl, $"Authentication/refresh/{Token.RefreshToken}");
 
                 HttpClient httpClient = new HttpClient();
                 HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, authUri);
                 requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token.WebToken);
+
+                HttpResponseMessage refreshResponse = await httpClient.SendAsync(requestMessage);
+
+                if (refreshResponse.IsSuccessStatusCode)
+                {
+                    string auth = await refreshResponse.Content.ReadAsStringAsync();
+                    Token = JsonConvert.DeserializeObject<Token>(auth);
+                }
             }
         }
     }
