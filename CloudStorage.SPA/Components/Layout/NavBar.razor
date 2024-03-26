@@ -74,7 +74,7 @@
 
     private async Task SignOut()
     {
-        await sessionStorage.RemoveItemAsync(Consts.Storage.USER);
+        await protectedLocalStorage.DeleteAsync(Consts.Storage.USER);
         user = null;
         navManager.NavigateTo("/");
         StateHasChanged();
