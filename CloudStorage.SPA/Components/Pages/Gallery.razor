@@ -3,6 +3,7 @@
 @inject IHttpClientFactory clientFactory;
 @inject IConfiguration configuration;
 @inject ISessionStorageService sessionStorage;
+@inject ProtectedLocalStorage protectedStorage;
 @inject ISnackbar snackbar;
 @inject NavigationManager navManager;
 <PageTitle>Gallery</PageTitle>
@@ -18,8 +19,6 @@
     }
     else if (blobDetails?.Count > 0)
     {
-        <MudBreadcrumbs Items="GetBreadcrumbs()" />
-        
         <MudGrid>
             <MudItem>
                 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
@@ -36,14 +35,12 @@
             </MudItem>
         </MudGrid>
 
-        @if (folderPath.Count != 0)
-        {
-            <MudGrid>
-                <MudItem>
-                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick='() => { UpdateFolderPath(".."); }'>Back</MudButton>
-                </MudItem>
-            </MudGrid>
-        }
+        <CloudStorage.SPA.Components.Views.BreadcrumbsView Breadcrumbs="GetBreadcrumbs()" OnBreadcrumbClicked="(link) => { ParseFolderPath(link); StateHasChanged(); }" />
+        <MudGrid>
+            <MudItem>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.KeyboardReturn" Disabled="@(folderPath.Count == 0)" OnClick='() => { UpdateFolderPath(".."); }'>Back</MudButton>
+            </MudItem>
+        </MudGrid>
         
         <MudGrid Justify="Justify.FlexStart">
             @if (folderPath.Count == 0 && HasPrivateImages())
@@ -109,7 +106,7 @@
         {
             try
             {
-                user = await sessionStorage.GetItemAsync<User>("user");
+                user = (await protectedStorage.GetAsync<User>(Consts.Storage.USER)).Value;
 
                 if (user == null)
                 {
@@ -282,25 +279,23 @@
         }
     }
 
-    private List<BreadcrumbItem> GetBreadcrumbs()
+    private List<Breadcrumb> GetBreadcrumbs()
     {
-        List<BreadcrumbItem> breadcrumbs = new List<BreadcrumbItem>();
+        List<Breadcrumb> breadcrumbs = new List<Breadcrumb>();
 
-        if (folderPath?.Count() == 0)
-        {
-            breadcrumbs.Add(new BreadcrumbItem("", "/Gallery", false, Icons.Material.Outlined.Folder));
-        }
+        breadcrumbs.Add(new Breadcrumb() { DisplayName = "", Link = "", Icon = Icons.Material.Filled.Folder });
 
         StringBuilder fullPath = new StringBuilder();
         foreach(string path in folderPath ?? [])
         {
             if (string.Equals(path, "__private__"))
             {
-                breadcrumbs.Add(new BreadcrumbItem("Private", "Gallery?route=__private__", false, Icons.Material.Outlined.Folder));
+                breadcrumbs.Add(new Breadcrumb() { DisplayName = "Private", Link = "Gallery?route=__private__", Icon = Icons.Material.Filled.Folder });
             }
             else {
                 fullPath.Append($"/{path.Trim('/')}");
-                breadcrumbs.Add(new BreadcrumbItem(path, $"Gallery?route={fullPath}", false, Icons.Material.Outlined.Folder));
+
+                breadcrumbs.Add(new Breadcrumb() { DisplayName = path, Link = fullPath.ToString(), Icon = Icons.Material.Filled.Folder });
             }
         }
 
@@ -329,5 +324,18 @@
         }
 
         return route.ToString();
+    }
+
+    private void ParseFolderPath(string pNewRoute)
+    {
+        if (string.IsNullOrEmpty(pNewRoute))
+        {
+            folderPath = new List<string>();
+        }
+        else
+        {
+            string[] parts = pNewRoute.Trim('/').Split('/');
+            folderPath = new List<string>(parts);
+        }
     }
 }
