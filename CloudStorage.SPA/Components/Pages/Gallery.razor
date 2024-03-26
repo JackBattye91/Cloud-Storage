@@ -9,7 +9,36 @@
 <PageTitle>Gallery</PageTitle>
 
 <MudContainer>
-    <MudText Typo="Typo.h3">Gallery</MudText>
+    <MudGrid>
+        <MudItem>
+            <MudText Typo="Typo.h3">Gallery</MudText>
+        </MudItem>
+        <MudSpacer/>
+        <MudItem Style="margin: auto 0;">
+            <MudGrid>
+                <MudItem>
+                    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0">
+                        <ButtonTemplate>
+                            <MudButton HtmlTag="label"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.CloudUpload"
+                                       for="@context.Id">
+                                Upload Files
+                            </MudButton>
+                        </ButtonTemplate>
+                    </MudFileUpload>
+                </MudItem>
+
+                <MudItem>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Folder">
+                        Create Folder
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+    </MudGrid>
+    
     
     @if (loadingBlobDetails)
     {
@@ -21,24 +50,10 @@
     {
         <MudGrid>
             <MudItem>
-                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-                    <ButtonTemplate>
-                        <MudButton HtmlTag="label"
-                                    Variant="Variant.Filled"
-                                    Color="Color.Primary"
-                                    StartIcon="@Icons.Material.Filled.CloudUpload"
-                                    for="@context.Id">
-                            Upload Files
-                        </MudButton>
-                    </ButtonTemplate>
-                </MudFileUpload>
+                <MudIconButton Icon="@Icons.Material.Filled.KeyboardReturn" Disabled="@(folderPath.Count == 0)" OnClick='() => { UpdateFolderPath(".."); }'/>
             </MudItem>
-        </MudGrid>
-
-        <CloudStorage.SPA.Components.Views.BreadcrumbsView Breadcrumbs="GetBreadcrumbs()" OnBreadcrumbClicked="(link) => { ParseFolderPath(link); StateHasChanged(); }" />
-        <MudGrid>
-            <MudItem>
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.KeyboardReturn" Disabled="@(folderPath.Count == 0)" OnClick='() => { UpdateFolderPath(".."); }'>Back</MudButton>
+            <MudItem Style="margin: auto 0;">
+                <CloudStorage.SPA.Components.Views.BreadcrumbsView Breadcrumbs="GetBreadcrumbs()" OnBreadcrumbClicked="(link) => { ParseFolderPath(link); StateHasChanged(); }" />
             </MudItem>
         </MudGrid>
         
