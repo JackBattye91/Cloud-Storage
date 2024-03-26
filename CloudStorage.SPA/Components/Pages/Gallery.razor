@@ -187,7 +187,8 @@
                 ContainerName = "pictures",
                 FileExtension = file.Name.Remove(0, file.Name.LastIndexOf('.')),
                 FileName = Guid.NewGuid().ToString(),
-                DataBase64 = imageB64
+                DataBase64 = imageB64,
+                IsPrivate = folderPath.Contains("__private__")
             };
 
             string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
