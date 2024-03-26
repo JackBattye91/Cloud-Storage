@@ -22,5 +22,8 @@ namespace CloudStorage.Interfaces
 
         [JsonProperty(PropertyName = "permissions")]
         Permission Permissions { get; set; }
+
+        [JsonProperty(PropertyName = "privateKey")]
+        string PrivateKey { get; set; }
     }
 }

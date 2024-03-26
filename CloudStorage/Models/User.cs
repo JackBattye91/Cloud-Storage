@@ -23,5 +23,8 @@ namespace CloudStorage.Models
 
         [JsonProperty(PropertyName = "permissions")]
         public Permission Permissions { get; set; } = Permission.None;
+
+        [JsonProperty(PropertyName = "privateKey")]
+        public string PrivateKey { get; set; } = string.Empty;
     }
 }
