@@ -65,7 +65,7 @@ namespace CloudStorage.API
 
         public static string GetContentType(string pFileExtension)
         {
-            switch(pFileExtension.ToLower())
+            switch(pFileExtension.ToLower().Trim('.'))
             {
                 case "png":
                     return "image/png";
@@ -73,7 +73,7 @@ namespace CloudStorage.API
                     return "image/jpeg";
 
                 default:
-                    return "text/plaim";
+                    return "text/plain";
             } 
         }
 
