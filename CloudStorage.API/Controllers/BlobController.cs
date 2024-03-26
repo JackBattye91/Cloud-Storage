@@ -145,7 +145,7 @@ namespace CloudStorage.API.Controllers
                     {
                         MemoryStream memoryStream = new MemoryStream();
 
-                        BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "private");
+                        BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blobDetail!.ContainerName);
                         BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail.BlobName}.{blobDetail.FileExtension}");
 
                         blobClient.DownloadTo(memoryStream);
@@ -232,7 +232,7 @@ namespace CloudStorage.API.Controllers
                 {
                     blobDetail = new BlobDetail();
                     blobDetail.FileName = pFileUpload.FileName;
-                    blobDetail.ContainerName = pFileUpload.ContainerName;
+                    blobDetail.ContainerName = pFileUpload.IsPrivate ? "private" : pFileUpload.ContainerName;
                     blobDetail.BlobName = Guid.NewGuid().ToString();
                     blobDetail.FileExtension = pFileUpload.FileExtension;
                     blobDetail.UserId = userId!;
@@ -247,7 +247,7 @@ namespace CloudStorage.API.Controllers
                     if (pFileUpload.IsPrivate)
                     {
                         MemoryStream memoryStream = new MemoryStream();
-                        BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "private");
+                        BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blobDetail!.ContainerName);
                         BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.BlobName}.{blobDetail.FileExtension}");
 
                         Aes aes = Aes.Create();
