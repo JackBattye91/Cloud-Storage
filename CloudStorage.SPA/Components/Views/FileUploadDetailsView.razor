@@ -65,20 +65,34 @@
                 return;
             }
 
+            MemoryStream memStream = new MemoryStream();
+
             FileUpload fileUpload = new FileUpload()
-                {
-                    ContainerName = "pictures",
-                    FileExtension = File.Name.Remove(0, File.Name.LastIndexOf('.')),
-                    FileName = FileName,
-                    Data = data,
-                    //DataBase64 = Base64Image,
-                    IsPrivate = isPrivate
-                };
+            {
+                ContainerName = "pictures",
+                FileExtension = File.Name.Remove(0, File.Name.LastIndexOf('.')),
+                FileName = FileName,
+                IsPrivate = isPrivate
+            };
+
             string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
+            memStream.Write(BitConverter.GetBytes(fileUploadContent.Length));
+            memStream.Write(Encoding.UTF8.GetBytes(fileUploadContent));
+
+            Stream stream = File.OpenReadStream(long.MaxValue);
+            byte[] buffer = new byte[512];
+            int bytesRead = 0;
+            do
+            {
+                bytesRead = await stream.ReadAsync(buffer, 0, 512);
+                memStream.Write(buffer, 0, bytesRead);
+            } while (bytesRead > 0);
 
             HttpClient client = clientFactory.CreateClient("api");
             HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "/Blob");
-            requestMessage.Content = new StringContent(fileUploadContent, System.Text.Encoding.UTF8, "application/json");
+            memStream.Position = 0;
+            requestMessage.Content = new StreamContent(memStream);
+            //requestMessage.Content = new StringContent(fileUploadContent, System.Text.Encoding.UTF8, "application/json");
 
             HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
 
