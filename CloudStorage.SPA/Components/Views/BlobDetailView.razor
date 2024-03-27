@@ -11,8 +11,7 @@
             else
             {
                 <MudImage Style="height: 100px; max-width: 100%" Src="@CreateBase64Image()" ObjectFit="ObjectFit.Contain" />
-            }
-            
+            }       
         </MudItem>
 
         <MudItem>
@@ -22,7 +21,7 @@
 </MudItem>
 
 
-    @code {
+@code {
     [Parameter]
     public IBlobDetail BlobDetail { get; set; }
     [Parameter]
