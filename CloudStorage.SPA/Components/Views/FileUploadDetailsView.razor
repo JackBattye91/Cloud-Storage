@@ -2,10 +2,10 @@
 @inject IHttpClientFactory clientFactory;
 
 <MudStack>
-    <MudTextField @bind-Value="FileName" Label="File name" />
+    <MudTextField @bind-Value="FileName" Label="File name" Required="true" />
     <MudCheckBox @bind-Checked="isPrivate" Label="Is private?" Dense="true"/>
 
-    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0">
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0" Required="true">
         <ButtonTemplate>
             <MudButton FullWidth="true" HtmlTag="label"
                         Variant="Variant.Filled"
@@ -23,7 +23,7 @@
     }
 </MudStack>
 
-<MudButton Style="position: absolute; bottom: 5px; left:5px; right: 5px;" Variant="Variant.Filled" Color="Color.Primary" OnClick="Upload">Upload</MudButton>
+<MudButton Style="position: absolute; bottom: 5px; left:5px; right: 5px;" Variant="Variant.Filled" Color="Color.Primary" OnClick="async() => { Upload(); }">Upload</MudButton>
 
 @code {
     [CascadingParameter]
