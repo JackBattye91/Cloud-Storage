@@ -7,8 +7,7 @@ namespace CloudStorage.SPA.Models
     public class AppState
     {
         public static AppState? Instance { get; set; }
-        public IUser? CurrentUser { get; set; }
-        //public IList<IBlobDetail>? BlobDetails { get; set; } = null;
+        public IUser? User { get; set; }
         public IToken? Token { get; set; }
 
         public static async Task Load(ProtectedLocalStorage pProtectedStorage)
@@ -20,11 +19,18 @@ namespace CloudStorage.SPA.Models
 
             try
             {
-                ProtectedBrowserStorageResult<User>? userValue = await pProtectedStorage.GetAsync<User>("user");
-                Instance!.CurrentUser = userValue?.Value;
+                if (Instance.User == null)
+                {
+                    ProtectedBrowserStorageResult<User>? userValue = await pProtectedStorage.GetAsync<User>("user");
+                    Instance!.User = userValue?.Value;
+                }
 
-                ProtectedBrowserStorageResult<Token>? tokenValue = await pProtectedStorage.GetAsync<Token>("token");
-                Instance!.Token = tokenValue?.Value;
+                if (Instance.Token == null)
+                {
+                    ProtectedBrowserStorageResult<Token>? tokenValue = await pProtectedStorage.GetAsync<Token>("token");
+                    Instance!.Token = tokenValue?.Value;
+                }
+                
             }
             catch (Exception ex)
             {
