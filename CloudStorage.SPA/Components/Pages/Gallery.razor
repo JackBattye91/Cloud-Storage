@@ -30,7 +30,6 @@
         </MudItem>
     </MudGrid>
     
-    
     @if (loadingBlobDetails)
     {
         <MudItem>
@@ -69,7 +68,7 @@
 </MudContainer>
 
 @if (uploadDrawVisible) {
-    <MudDrawer @bind-Open="uploadDrawVisible" Anchor="Anchor.Right" Elevation="1" Fixed="true" Variant="DrawerVariant.Temporary" ClipMode="DrawerClipMode.Never">
+    <MudDrawer @bind-Open="uploadDrawVisible" Width="500" Anchor="Anchor.Right" Elevation="1" Fixed="true" Variant="DrawerVariant.Temporary" ClipMode="DrawerClipMode.Never">
         <MudDrawerHeader>
             <MudText Typo="Typo.h5">Upload Images</MudText>
         </MudDrawerHeader>
@@ -78,7 +77,6 @@
         </MudDrawerContainer>
     </MudDrawer>
 }
-
 
 <MudOverlay @bind-Visible="isOverlayVisible" DarkBackground="true" AutoClose="true" ZIndex="99999">
     @if (overlayImageLoading)
@@ -255,7 +253,7 @@
             overlayImageLoading = true;
 
             HttpClient client = clientFactory.CreateClient("api");
-            HttpRequestMessage imageRequest = new HttpRequestMessage(HttpMethod.Get, $"Blob/{pBlobDetail.FileName}");
+            HttpRequestMessage imageRequest = new HttpRequestMessage(HttpMethod.Get, $"Blob/{pBlobDetail.Id}");
             HttpResponseMessage imageResponse = await client.SendAsync(imageRequest);
 
             if (imageResponse.IsSuccessStatusCode)
