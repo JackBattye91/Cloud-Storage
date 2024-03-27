@@ -3,7 +3,15 @@
 <MudItem xs="6" sm="4" md="3" lg="3" @onclick="OnClick">
     <MudStack Class="pb-5">
         <MudItem Class="text-center">
-            <MudImage Style="height: 100px; max-width: 100%" Src="@CreateBase64Image()" ObjectFit="ObjectFit.Contain" />
+            @if (string.IsNullOrEmpty(thumbnailData))
+            {
+                <MudProgressCircular Indeterminate="true"/>
+            }
+            else
+            {
+                <MudImage Style="height: 100px; max-width: 100%" Src="@CreateBase64Image()" ObjectFit="ObjectFit.Contain" />
+            }
+            
         </MudItem>
 
         <MudItem>
@@ -16,9 +24,10 @@
 @code {
     [Parameter]
     public IBlobDetail BlobDetail { get; set; }
-
     [Parameter]
     public EventCallback<MouseEventArgs> OnClick { get; set; }
+
+    string? thumbnailData { get; set; }
 
     private string FileName {
         get {
@@ -27,16 +36,27 @@
         }
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await GetThumbnail();
+        await base.OnInitializedAsync();
+    }
+
     private async Task<string?> GetThumbnail()
     {
         try
         {
-            HttpClient client = clientfactory.CreateClient("api");
-            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/Blob/thumbnail/{BlobDetail.FileName}");
-
-            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
-            if (responseMessage.IsSuccessStatusCode)
+            if (BlobDetail != null)
             {
+                HttpClient client = clientfactory.CreateClient("api");
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/Blob/thumbnail/{BlobDetail.Id}");
+
+                HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+                if (responseMessage.IsSuccessStatusCode)
+                {
+                    byte[] imageData = await responseMessage.Content.ReadAsByteArrayAsync();
+                    thumbnailData = Convert.ToBase64String(imageData);
+                }
             }
         }
         catch (Exception ex)
@@ -48,6 +68,6 @@
     }
     private string CreateBase64Image()
     {
-        return $"data:image/jpeg;base64, {BlobDetail.Thumbnail}";
+        return $"data:image/jpeg;base64, {thumbnailData}";
     }
 }
