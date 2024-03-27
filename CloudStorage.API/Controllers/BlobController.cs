@@ -14,6 +14,9 @@ using CloudStorage.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Newtonsoft.Json;
+using System;
 
 namespace CloudStorage.API.Controllers
 {
@@ -197,12 +200,15 @@ namespace CloudStorage.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadImage([FromHeader(Name = "Authorization")] string pBearerToken, [FromBody] FileUpload pFileUpload)
+        public async Task<IActionResult> UploadImage([FromHeader(Name = "Authorization")] string pBearerToken)
         {
             IReturnCode rc = new ReturnCode();
             IBlobDetail? blobDetail = null;
             IUser? user = null;
             string? userId = null;
+            FileUpload? fileUpload = null;
+            int detailsSize = 0;
+            Stream? fileDataStream = null;
 
             try
             {
@@ -229,17 +235,32 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
+                    byte[] buffer = new byte[512];
+                    int bytesRead = 0;
+
+                    // Read details size
+                    bytesRead = await Request.Body.ReadAsync(buffer, 0, 4);
+                    detailsSize = BitConverter.ToInt32(buffer, 0);
+
+                    // read Upload Details
+                    await Request.Body.ReadAsync(buffer, 0, detailsSize);
+                    string detailsContent = Encoding.UTF8.GetString(buffer,0, detailsSize);
+                    fileUpload = JsonConvert.DeserializeObject<FileUpload>(detailsContent);
+                }
+
+                if (rc.Success)
+                {
                     blobDetail = new BlobDetail
                     {
-                        FileName = pFileUpload.FileName,
-                        ContainerName = pFileUpload.IsPrivate ? "private" : pFileUpload.ContainerName,
-                        BlobName = Guid.NewGuid().ToString(),
-                        FileExtension = pFileUpload.FileExtension,
+                        FileName = fileUpload!.FileName,
+                        ContainerName = fileUpload.IsPrivate ? "private" : fileUpload.ContainerName,
+                        BlobName = $"{Guid.NewGuid()}_{DateTime.UtcNow.ToString("yyyy-MM-dd")}",
+                        FileExtension = fileUpload.FileExtension.Trim('.'),
                         UserId = userId!,
                         Id = Guid.NewGuid().ToString(),
-                        Thumbnail = pFileUpload.IsPrivate ? null : Guid.NewGuid().ToString(),
-                        Private = pFileUpload.IsPrivate,
-                        IV = pFileUpload.IsPrivate ? Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)) : null,
+                        Thumbnail = fileUpload.IsPrivate ? null : $"{Guid.NewGuid()}.{fileUpload.FileExtension.Trim('.')}",
+                        Private = fileUpload.IsPrivate,
+                        IV = fileUpload.IsPrivate ? Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)) : null,
                         Created = DateTime.UtcNow
                     };
                 }
@@ -248,12 +269,15 @@ namespace CloudStorage.API.Controllers
                 {
                     try
                     {
-                        if (!pFileUpload.IsPrivate)
+                        fileDataStream = await Worker.CopyTo(Request.Body);
+                        fileDataStream.Seek(0, SeekOrigin.Begin);
+
+                        if (!fileUpload!.IsPrivate)
                         {
-                            BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnail");
-                            byte[] data = Convert.FromBase64String(Worker.CreateBase64Thumbnail(pFileUpload.DataBase64, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE));
+                            BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
+                            byte[] data = await Worker.CreateThumbnail(fileDataStream, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
                             BinaryData binaryData = new BinaryData(data);
-                            BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.Thumbnail}.{blobDetail.FileExtension}");
+                            BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.Thumbnail}");
                             await blobClient.UploadAsync(binaryData);
                         }                        
                     }
@@ -265,7 +289,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    if (pFileUpload.IsPrivate)
+                    if (fileUpload!.IsPrivate)
                     {
                         MemoryStream memoryStream = new MemoryStream();
                         BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blobDetail!.ContainerName);
@@ -274,10 +298,17 @@ namespace CloudStorage.API.Controllers
                         Aes aes = Aes.Create();
                         aes.Key = Convert.FromBase64String(user!.PrivateKey);
                         aes.IV = Convert.FromBase64String(blobDetail.IV!);
-                        byte[] data = Convert.FromBase64String(pFileUpload.DataBase64);
+                        fileDataStream!.Seek(0, SeekOrigin.Begin);
                         using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                         {
-                            cryptoStream.Write(data);
+                            int bytesRead = 0;
+                            byte[] buffer = new byte[512];
+                            do
+                            {
+                                bytesRead = await fileDataStream.ReadAsync(buffer, 0, 512);
+                                cryptoStream.Write(buffer, 0, bytesRead);
+                            } while (bytesRead > 0);
+
                             memoryStream.Position = 0;
                             await blobClient.UploadAsync(memoryStream);
                         }
@@ -285,12 +316,10 @@ namespace CloudStorage.API.Controllers
                     else
                     {
                         BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blobDetail!.ContainerName);
-                        byte[] data = Convert.FromBase64String(pFileUpload.DataBase64);
-                        BinaryData binaryData = new BinaryData(data);
                         BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail.BlobName}.{blobDetail.FileExtension}");
-                        await blobClient.UploadAsync(binaryData);
+                        fileDataStream!.Seek(0, SeekOrigin.Begin);
+                        await blobClient.UploadAsync(fileDataStream);
                     }
-                    
                 }
 
                 if (rc.Success)
