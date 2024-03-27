@@ -18,23 +18,21 @@
     }
 </MudAppBar>
 
-@if (showMenuBar)
-{
-    <MudDrawer @bind-Open="@showMenuBar" Anchor="Anchor.Left" Elevation="1" Variant="@DrawerVariant.Temporary">
-        <MudDrawerHeader>
-            <MudLink Href="/" Typo="Typo.h5">Cloud Storage</MudLink>
-        </MudDrawerHeader>
-        <MudNavMenu>
-            <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
 
-            @if (user != null)
-            {
-                <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
-            }
+<MudDrawer @bind-Open="@showMenuBar" Anchor="Anchor.Left" Elevation="1" Variant="@DrawerVariant.Temporary">
+    <MudDrawerHeader>
+        <MudLink Href="/" Typo="Typo.h5">Cloud Storage</MudLink>
+    </MudDrawerHeader>
+    <MudNavMenu>
+        <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
 
-        </MudNavMenu>
-    </MudDrawer>
-}
+        @if (user != null)
+        {
+            <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+        }
+
+    </MudNavMenu>
+</MudDrawer>
 
 @if (user != null && false)
 {
