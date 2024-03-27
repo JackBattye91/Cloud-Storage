@@ -1,4 +1,5 @@
 ﻿@rendermode InteractiveServer
+@inject ILogger<FileUploadDetailsView> logger;
 @inject IHttpClientFactory clientFactory;
 
 <MudStack>
@@ -34,7 +35,8 @@
     IBrowserFile? File { get; set; }
     string? FileName { get; set; }
     string? Base64Image { get; set; }
-    bool isPrivate = false;
+    bool isPrivate { get; set; } = false;
+    byte[]? data { get; set; }
 
     private async void UploadFiles(IBrowserFile file)
     {
@@ -42,7 +44,7 @@
         {
             File = file;
             long fileSize = file.Size;
-            byte[] data = new byte[(int)file.Size];
+            data = new byte[(int)file.Size];
             Stream stream = file.OpenReadStream(long.MaxValue);
             await stream.ReadAsync(data, 0, (int)fileSize);
             Base64Image = Convert.ToBase64String(data);
@@ -50,40 +52,44 @@
         }
         catch (Exception ex)
         {
-            //snackbar.Add(ex.Message, Severity.Error);
+            logger.LogError(ex.Message);
         }
     }
 
     private async void Upload()
     {
-        if (File == null || string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(Base64Image))
+        try
         {
-            return;
+            if (File == null || string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(Base64Image))
+            {
+                return;
+            }
+
+            FileUpload fileUpload = new FileUpload()
+                {
+                    ContainerName = "pictures",
+                    FileExtension = File.Name.Remove(0, File.Name.LastIndexOf('.')),
+                    FileName = FileName,
+                    Data = data,
+                    //DataBase64 = Base64Image,
+                    IsPrivate = isPrivate
+                };
+            string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
+
+            HttpClient client = clientFactory.CreateClient("api");
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "/Blob");
+            requestMessage.Content = new StringContent(fileUploadContent, System.Text.Encoding.UTF8, "application/json");
+
+            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                await OnFileUploaded.InvokeAsync();
+            }
         }
-
-        FileUpload fileUpload = new FileUpload()
+        catch (Exception ex)
         {
-            ContainerName = "pictures",
-            FileExtension = File.Name.Remove(0, File.Name.LastIndexOf('.')),
-            FileName = FileName,
-            //DataBase64 = Base64Image,
-            IsPrivate = isPrivate
-        };
-
-        fileUpload.Data = new byte[File.Size];
-        await File.OpenReadStream(long.MaxValue).ReadAsync(fileUpload.Data, 0, (int)File.Size);
-
-        string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
-
-        HttpClient client = clientFactory.CreateClient("api");
-        HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "/Blob");
-        requestMessage.Content = new StringContent(fileUploadContent, System.Text.Encoding.UTF8, "application/json");
-
-        HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
-
-        if (responseMessage.IsSuccessStatusCode)
-        {
-            await OnFileUploaded.InvokeAsync();
+            logger.LogError(ex.Message);
         }
     }
 
