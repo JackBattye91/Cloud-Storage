@@ -71,7 +71,7 @@
         };
 
         fileUpload.Data = new byte[File.Size];
-        File.OpenReadStream(long.MaxValue, cancellationToken).Read(fileUpload.Data, 0, (int)File.Size);
+        await File.OpenReadStream(long.MaxValue).ReadAsync(fileUpload.Data, 0, (int)File.Size);
 
         string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
 
