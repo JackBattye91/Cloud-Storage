@@ -1,8 +1,10 @@
-﻿@inject ISessionStorageService sessionStorage;
+﻿@rendermode InteractiveServer
+@inject ISessionStorageService sessionStorage;
 @inject ILocalStorageService localStorage;
 @inject ProtectedLocalStorage protectedLocalStorage
 @inject NavigationManager navManager;
-@rendermode InteractiveServer
+@inject ILogger<NavBar> logger;
+
 
 <MudAppBar Color="Color.Primary" Fixed="false">
     <MudIconButton OnClick="() => { showMenuDrawer = !showMenuDrawer; }" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
@@ -61,7 +63,7 @@
             if (user == null)
             {
                 await AppState.Load(protectedLocalStorage);
-                
+
                 user = AppState.Instance?.User;
                 if (user != null)
                 {
@@ -71,6 +73,7 @@
         }
         catch (Exception ex)
         {
+            logger.LogError(ex.Message);
         }
 
         await base.OnAfterRenderAsync(firstRender);
@@ -78,11 +81,19 @@
 
     private async Task SignOut()
     {
-        await protectedLocalStorage.DeleteAsync(Consts.Storage.USER);
-        await protectedLocalStorage.DeleteAsync(Consts.Storage.TOKEN);
-        AppState.Instance = null;
-        user = null;
-        navManager.NavigateTo("/", true);
-        StateHasChanged();
+        try
+        {
+            await protectedLocalStorage.DeleteAsync(Consts.Storage.USER);
+            await protectedLocalStorage.DeleteAsync(Consts.Storage.TOKEN);
+            AppState.Instance = null;
+            user = null;
+            navManager.NavigateTo("/", true);
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
     }
 }
