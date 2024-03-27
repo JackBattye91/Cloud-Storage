@@ -38,7 +38,7 @@ namespace CloudStorage.API.Controllers
         public async Task<IActionResult> GetBlobDetails([FromHeader(Name = "Authorization")] string pBearerToken, [FromHeader(Name = "deleted")]bool pShowDeleted = false)
         {
             IReturnCode rc = new ReturnCode();
-            IList<BlobDetail> blobDetailsList = new List<BlobDetail>();
+            IList<IBlobDetail> blobDetailsList = new List<IBlobDetail>();
             string? userId = null;
 
             try
@@ -53,7 +53,7 @@ namespace CloudStorage.API.Controllers
                 {
                     string showDeletedBlobs = pShowDeleted ? "" : "AND c.deleted = false";
                     string query = $"SELECT * FROM c WHERE c.userId = '{userId}' {showDeletedBlobs}";
-                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
+                    IReturnCode<IList<IBlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
 
                     if (getBlobDetailRc.Success)
                     {
@@ -86,11 +86,11 @@ namespace CloudStorage.API.Controllers
 
         [HttpGet]
         [Route("{id}")]
-        public async Task<Stream?> GetImage([FromHeader(Name = "Authorization")]string pBearerToken, [FromRoute(Name = "id")]string fileName)
+        public async Task<Stream?> GetImage([FromHeader(Name = "Authorization")]string pBearerToken, [FromRoute(Name = "id")]string pBlobDetailId)
         {
             IReturnCode rc = new ReturnCode();
-            BlobDetail? blobDetail = null;
-            User? user = null;
+            IBlobDetail? blobDetail = null;
+            IUser? user = null;
             string? userId = null;
 
             try
@@ -103,18 +103,18 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    string query = $"SELECT * FROM c WHERE c.fileName = '{fileName}' AND c.userId = '{userId}' AND c.deleted = false";
-                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
+                    string query = $"SELECT * FROM c WHERE c.id = '{pBlobDetailId}' AND c.userId = '{userId}' AND c.deleted = false";
+                    IReturnCode<IList<IBlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
 
                     if (getBlobDetailRc.Success)
                     {
-                        if (getBlobDetailRc.Data?.Count == 1)
+                        if (getBlobDetailRc.Data?.Count > 0)
                         {
                             blobDetail = getBlobDetailRc.Data[0];
                         }
                         else
                         {
-                            throw new JBException("Unable to get blob details");
+                            rc.AddError(new NetworkError(45, System.Net.HttpStatusCode.NotFound));
                         }
                     }
 
@@ -126,7 +126,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode<User> getUserRc = await NoSqlWrapper.GetItem<User>(Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, userId!);
+                    IReturnCode<IUser> getUserRc = await NoSqlWrapper.GetItem<IUser, User>(Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, userId!);
 
                     if (getUserRc.Success)
                     {
@@ -192,7 +192,7 @@ namespace CloudStorage.API.Controllers
                 ErrorWorker.LogErrors(Logger, rc);
             }
 
-            Response.StatusCode = 500;
+            Response.StatusCode = (int)ErrorWorker.GetStatusCode(rc);
             return null;
         }
 
@@ -200,8 +200,8 @@ namespace CloudStorage.API.Controllers
         public async Task<IActionResult> UploadImage([FromHeader(Name = "Authorization")] string pBearerToken, [FromBody] FileUpload pFileUpload)
         {
             IReturnCode rc = new ReturnCode();
-            BlobDetail? blobDetail = null;
-            User? user = null;
+            IBlobDetail? blobDetail = null;
+            IUser? user = null;
             string? userId = null;
 
             try
@@ -214,7 +214,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode<User> getUserRc = await NoSqlWrapper.GetItem<User>(Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, userId!);
+                    IReturnCode<IUser> getUserRc = await NoSqlWrapper.GetItem<IUser, User>(Consts.Database.DATABASE, Database.USER_CONTAINER_NAME, userId!);
 
                     if (getUserRc.Success)
                     {
@@ -227,20 +227,40 @@ namespace CloudStorage.API.Controllers
                     }
                 }
 
+                if (rc.Success)
+                {
+                    blobDetail = new BlobDetail
+                    {
+                        FileName = pFileUpload.FileName,
+                        ContainerName = pFileUpload.IsPrivate ? "private" : pFileUpload.ContainerName,
+                        BlobName = Guid.NewGuid().ToString(),
+                        FileExtension = pFileUpload.FileExtension,
+                        UserId = userId!,
+                        Id = Guid.NewGuid().ToString(),
+                        Thumbnail = pFileUpload.IsPrivate ? null : Guid.NewGuid().ToString(),
+                        Private = pFileUpload.IsPrivate,
+                        IV = pFileUpload.IsPrivate ? Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)) : null,
+                        Created = DateTime.UtcNow
+                    };
+                }
 
                 if (rc.Success)
                 {
-                    blobDetail = new BlobDetail();
-                    blobDetail.FileName = pFileUpload.FileName;
-                    blobDetail.ContainerName = pFileUpload.IsPrivate ? "private" : pFileUpload.ContainerName;
-                    blobDetail.BlobName = Guid.NewGuid().ToString();
-                    blobDetail.FileExtension = pFileUpload.FileExtension;
-                    blobDetail.UserId = userId!;
-                    blobDetail.Id = Guid.NewGuid().ToString();
-                    blobDetail.Thumbnail = Worker.CreateBase64Thumbnail(pFileUpload.DataBase64, 256, 256);
-                    blobDetail.Private = pFileUpload.IsPrivate;
-                    blobDetail.IV = pFileUpload.IsPrivate ? Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)) : null;
-                    blobDetail.Created = DateTime.UtcNow;
+                    try
+                    {
+                        if (!pFileUpload.IsPrivate)
+                        {
+                            BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnail");
+                            byte[] data = Convert.FromBase64String(Worker.CreateBase64Thumbnail(pFileUpload.DataBase64, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE));
+                            BinaryData binaryData = new BinaryData(data);
+                            BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.Thumbnail}.{blobDetail.FileExtension}");
+                            await blobClient.UploadAsync(binaryData);
+                        }                        
+                    }
+                    catch(Exception ex)
+                    {
+                        rc.AddError(new Error(789, ex, JB.Common.Consts.ErrorType.WARNING));
+                    }
                 }
 
                 if (rc.Success)
@@ -275,7 +295,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    IReturnCode<BlobDetail> createBlobDetailRc = await NoSqlWrapper.AddItem<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail!);
+                    IReturnCode<IBlobDetail> createBlobDetailRc = await NoSqlWrapper.AddItem<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail!);
 
                     if (createBlobDetailRc.Failed)
                     {
@@ -283,7 +303,7 @@ namespace CloudStorage.API.Controllers
                     }
                 }
 
-                return new OkResult();
+                return new CreatedResult();
             }
             catch (Exception ex) {
                 rc.AddError(new Error(4, ex));
@@ -299,10 +319,10 @@ namespace CloudStorage.API.Controllers
 
         [HttpDelete]
         [Route("{id}")]
-        public async Task<IActionResult> DeleteImage([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string fileName)
+        public async Task<IActionResult> DeleteImage([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string pBlobDetailId)
         {
             IReturnCode rc = new ReturnCode();
-            BlobDetail? blobDetail = null;
+            IBlobDetail? blobDetail = null;
             string? userId = null;
 
             try
@@ -315,19 +335,11 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    string query = $"SELECT * FROM c WHERE c.fileName = '{fileName}' AND c.userId = '{userId}' AND c.deleted = false";
-                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
+                    IReturnCode<IBlobDetail> getBlobDetailRc = await NoSqlWrapper.GetItem<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, pBlobDetailId);
 
                     if (getBlobDetailRc.Success)
                     {
-                        if (getBlobDetailRc.Data?.Count == 1)
-                        {
-                            blobDetail = getBlobDetailRc.Data[0];
-                        }
-                        else
-                        {
-                            throw new JBException("Unable to get blob details");
-                        }
+                        blobDetail = getBlobDetailRc.Data;
                     }
 
                     if (getBlobDetailRc.Failed)
@@ -339,7 +351,7 @@ namespace CloudStorage.API.Controllers
                 if (rc.Success)
                 {
                     blobDetail!.Deleted = true;
-                    IReturnCode<BlobDetail> updateBlobDetailRc = await NoSqlWrapper.UpdateItem<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail!, blobDetail.Id, blobDetail.ContainerName);
+                    IReturnCode<IBlobDetail> updateBlobDetailRc = await NoSqlWrapper.UpdateItem<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail!, blobDetail.Id, blobDetail.ContainerName);
 
                     if (updateBlobDetailRc.Failed)
                     {
@@ -364,10 +376,10 @@ namespace CloudStorage.API.Controllers
 
         [HttpGet]
         [Route("thumbnail/{id}")]
-        public async Task<Stream?> GetThumbnail([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string fileName)
+        public async Task<Stream?> GetThumbnail([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string pBlobDetailId)
         {
             IReturnCode rc = new ReturnCode();
-            BlobDetail? blobDetail = null;
+            IBlobDetail? blobDetail = null;
             string? userId = null;
 
             try
@@ -380,18 +392,18 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    string query = $"SELECT * FROM c WHERE c.fileName = '{fileName}' AND c.userId = '{userId}' AND c.deleted = false";
-                    IReturnCode<IList<BlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
+                    string query = $"SELECT * FROM c WHERE c.id = '{pBlobDetailId}' AND c.userId = '{userId}' AND c.deleted = false";
+                    IReturnCode<IList<IBlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
 
                     if (getBlobDetailRc.Success)
                     {
-                        if (getBlobDetailRc.Data?.Count == 1)
+                        if (getBlobDetailRc.Data?.Count > 0)
                         {
                             blobDetail = getBlobDetailRc.Data[0];
                         }
                         else
                         {
-                            throw new JBException("Unable to get blob details");
+                            rc.AddError(new NetworkError(45, System.Net.HttpStatusCode.NotFound));
                         }
                     }
 
@@ -403,17 +415,25 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    MemoryStream memoryStream = new MemoryStream();
+                    if (!blobDetail!.Private)
+                    {
+                        MemoryStream memoryStream = new MemoryStream();
 
-                    BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
-                    BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.ThumbnailUrl}");
+                        BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
+                        BlobClient blobClient = blobContainerClient.GetBlobClient(blobDetail!.Thumbnail);
 
-                    blobClient.DownloadTo(memoryStream);
-                    memoryStream.Seek(0, SeekOrigin.Begin);
+                        blobClient.DownloadTo(memoryStream);
+                        memoryStream.Seek(0, SeekOrigin.Begin);
 
-                    Response.ContentType = Worker.GetContentType(blobDetail.FileExtension);
-                    this.Response.ContentType = "image/jpeg";
-                    return memoryStream;
+                        Response.ContentType = Worker.GetContentType(blobDetail.FileExtension);
+                        this.Response.ContentType = "image/jpeg";
+                        return memoryStream;
+                    }
+                    else
+                    {
+                        Response.StatusCode = 404;
+                        return null;
+                    }
                 }
             }
             catch (Exception ex)
@@ -467,7 +487,7 @@ namespace CloudStorage.API.Controllers
                 {
                     foreach(var blob in blobDetailsList)
                     {
-                        if (string.IsNullOrEmpty(blob.ThumbnailUrl))
+                        if (string.IsNullOrEmpty(blob.Thumbnail))
                         {
                             MemoryStream memoryStream = new MemoryStream();
 
@@ -478,13 +498,11 @@ namespace CloudStorage.API.Controllers
                             memoryStream.Seek(0, SeekOrigin.Begin);
                             string b64Image = Convert.ToBase64String(memoryStream.ToArray());
 
-
                             BlobContainerClient thumbnailBlobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
-                            byte[] thumbnailData = Worker.CreateThumbnail(b64Image, 256, 256);
+                            byte[] thumbnailData = Worker.CreateThumbnail(b64Image, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
                             BinaryData thumbnailBinaryData = new BinaryData(thumbnailData);
-                            string thumbnailName = Guid.NewGuid().ToString();
-                            BlobClient thumbnailBlobClient = thumbnailBlobContainerClient.GetBlobClient($"{thumbnailName}.jpeg");
-                            blob.ThumbnailUrl = $"{thumbnailName}.jpeg";
+                            blob.Thumbnail = $"{Guid.NewGuid()}.jpeg";
+                            BlobClient thumbnailBlobClient = thumbnailBlobContainerClient.GetBlobClient(blob.Thumbnail);
                             await thumbnailBlobClient.UploadAsync(thumbnailBinaryData);
                         }
                     }
@@ -492,7 +510,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    foreach(BlobDetail blobDetail in blobDetailsList)
+                    foreach(IBlobDetail blobDetail in blobDetailsList)
                     {
                         IReturnCode<IBlobDetail> getBlobDetailsRc = await NoSqlWrapper.UpdateItem<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail, blobDetail.Id, blobDetail.ContainerName);
 
