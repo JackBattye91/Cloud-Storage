@@ -32,8 +32,8 @@
     public EventCallback OnFileUploaded { get; set; }
 
     IBrowserFile? File { get; set; }
-    string FileName { get; set; }
-    string Base64Image { get; set; }
+    string? FileName { get; set; }
+    string? Base64Image { get; set; }
     bool isPrivate = false;
 
     private async void UploadFiles(IBrowserFile file)
@@ -56,7 +56,7 @@
 
     private async void Upload()
     {
-        if (File == null)
+        if (File == null || string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(Base64Image))
         {
             return;
         }
@@ -66,9 +66,12 @@
             ContainerName = "pictures",
             FileExtension = File.Name.Remove(0, File.Name.LastIndexOf('.')),
             FileName = FileName,
-            DataBase64 = Base64Image,
+            //DataBase64 = Base64Image,
             IsPrivate = isPrivate
         };
+
+        fileUpload.Data = new byte[File.Size];
+        File.OpenReadStream(long.MaxValue, cancellationToken).Read(fileUpload.Data, 0, (int)File.Size);
 
         string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
 
@@ -80,7 +83,6 @@
 
         if (responseMessage.IsSuccessStatusCode)
         {
-
             await OnFileUploaded.InvokeAsync();
         }
     }
