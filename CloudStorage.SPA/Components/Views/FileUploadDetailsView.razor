@@ -3,10 +3,10 @@
 @inject IHttpClientFactory clientFactory;
 
 <MudStack>
-    <MudTextField @bind-Value="FileName" Label="File name" Required="true" />
-    <MudCheckBox @bind-Checked="isPrivate" Label="Is private?" Dense="true"/>
+    <MudTextField @bind-Value="FileName" Label="File name" Required="true" Disabled="isWorking" />
+    <MudCheckBox @bind-Checked="isPrivate" Label="Is private?" Dense="true" Disabled="isWorking" />
 
-    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0" Required="true">
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0" Required="true" Disabled="isWorking">
         <ButtonTemplate>
             <MudButton FullWidth="true" HtmlTag="label"
                         Variant="Variant.Filled"
@@ -24,7 +24,13 @@
     }
 </MudStack>
 
-<MudButton Style="position: absolute; bottom: 5px; left:5px; right: 5px;" Variant="Variant.Filled" Color="Color.Primary" OnClick="async() => { Upload(); }">Upload</MudButton>
+<MudButton Style="position: absolute; bottom: 5px; left:5px; right: 5px;" Variant="Variant.Filled" Color="Color.Primary" Disabled="isWorking" OnClick="async() => { Upload(); }">
+    @if (isWorking)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+    }
+    Upload
+</MudButton>
 
 @code {
     [CascadingParameter]
@@ -37,6 +43,7 @@
     string? Base64Image { get; set; }
     bool isPrivate { get; set; } = false;
     byte[]? data { get; set; }
+    bool isWorking { get; set; } = false;
 
     private async void UploadFiles(IBrowserFile file)
     {
@@ -60,6 +67,7 @@
     {
         try
         {
+            isWorking = true;
             if (File == null || string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(Base64Image))
             {
                 return;
@@ -105,6 +113,7 @@
         {
             logger.LogError(ex.Message);
         }
+        isWorking = false;
     }
 
     private string ImageSource()
