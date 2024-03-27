@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using CloudStorage.Interfaces;
 using CloudStorage.Models;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -9,14 +10,19 @@ namespace CloudStorage.SPA.Models
 {
     public class JwtDelegationHandler : DelegatingHandler
     {
-        private readonly ProtectedLocalStorage LocalStorage;
-        private static Token? Token { get; set; }
+        private readonly ProtectedLocalStorage ProtectedStorage;
+        private static IToken? Token { get; set; }
         private AppSettings AppSettings { get; set; }
 
         public JwtDelegationHandler(IOptions<AppSettings> pAppSettings, ProtectedLocalStorage pProtectedLocalStorage)
         {
             AppSettings = pAppSettings.Value;
-            LocalStorage = pProtectedLocalStorage;
+            ProtectedStorage = pProtectedLocalStorage;
+            
+            if (AppState.Instance != null)
+            {
+                Token = AppState.Instance.Token;
+            }
         }
 
         protected override HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -50,8 +56,7 @@ namespace CloudStorage.SPA.Models
         private async Task<bool> IsValidJwt() { 
             if (Token == null)
             {
-                ProtectedBrowserStorageResult<Token> tokenResult = await LocalStorage.GetAsync<Token>(Consts.Storage.TOKEN);
-                Token = tokenResult.Value;
+                Token = AppState.Instance?.Token;
             }
             await UpdateJwt();
 
