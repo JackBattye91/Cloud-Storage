@@ -5,7 +5,7 @@
 @rendermode InteractiveServer
 
 <MudAppBar Color="Color.Primary" Fixed="false">
-    <MudIconButton OnClick="() => { showMenuBar = !showMenuBar; }" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
+    <MudIconButton OnClick="() => { showMenuDrawer = !showMenuDrawer; }" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
     <MudSpacer />
 
     @if (user == null)
@@ -14,43 +14,45 @@
     }
     else
     {
-        <MudAvatar @onclick="SignOut" Color="Color.Primary">@char.ToUpper(user.Username[0])</MudAvatar>
+        <MudAvatar @onclick="() => { showProfileDrawer = !showProfileDrawer; }" Color="Color.Primary">@char.ToUpper(user.Username[0])</MudAvatar>
     }
 </MudAppBar>
 
-
-<MudDrawer @bind-Open="@showMenuBar" Anchor="Anchor.Left" Elevation="1" Variant="@DrawerVariant.Temporary">
-    <MudDrawerHeader>
-        <MudLink Href="/" Typo="Typo.h5">Cloud Storage</MudLink>
-    </MudDrawerHeader>
-    <MudNavMenu>
-        <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
-
-        @if (user != null)
-        {
-            <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
-        }
-
-    </MudNavMenu>
-</MudDrawer>
-
-@if (user != null && false)
+@if (showMenuDrawer)
 {
-    <MudDrawer @bind-Open="@showProfileBar" Anchor="Anchor.Right" Elevation="1" Variant="@DrawerVariant.Temporary">
-    <MudDrawerHeader>
-        <MudText Typo="Typo.h5">@user?.Username</MudText>
+    <MudDrawer id="navDrawer" Open="true" OpenChanged="(isOpen) => { showMenuDrawer = isOpen; }" Anchor="Anchor.Left" Elevation="1" Variant="@DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <MudLink Href="/" Typo="Typo.h5">Cloud Storage</MudLink>
         </MudDrawerHeader>
         <MudNavMenu>
             <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
-            <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+
+            @if (user != null)
+            {
+                <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+            }
+
         </MudNavMenu>
     </MudDrawer>
 }
 
+
+@if (user != null && showProfileDrawer)
+{
+    <MudDrawer id="profileDrawer" Open="true" OpenChanged="(isOpen) => { showProfileDrawer = isOpen; }" Anchor="Anchor.Right" Elevation="1" Variant="@DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h5">@user?.Username</MudText>
+        </MudDrawerHeader>
+        <MudDrawerContainer>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SignOut">Log Out</MudButton>
+        </MudDrawerContainer>
+    </MudDrawer>
+}
+
 @code {
-    bool showMenuBar = false;
-    bool showProfileBar = false;
-    User? user = null;
+    bool showMenuDrawer = false;
+    bool showProfileDrawer = false;
+    IUser? user = null;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -58,7 +60,9 @@
         {
             if (user == null)
             {
-                user = (await protectedLocalStorage.GetAsync<User>(Consts.Storage.USER)).Value;
+                await AppState.Load(protectedLocalStorage);
+                
+                user = AppState.Instance?.User;
                 if (user != null)
                 {
                     StateHasChanged();
@@ -76,8 +80,9 @@
     {
         await protectedLocalStorage.DeleteAsync(Consts.Storage.USER);
         await protectedLocalStorage.DeleteAsync(Consts.Storage.TOKEN);
+        AppState.Instance = null;
         user = null;
-        navManager.NavigateTo("/");
+        navManager.NavigateTo("/", true);
         StateHasChanged();
     }
 }
