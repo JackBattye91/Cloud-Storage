@@ -99,8 +99,8 @@
 @code {
     [CascadingParameter]
     public List<string> folderPath { get; set; } = new List<string>();
-    User? user { get; set; } = null;
-    List<BlobDetail>? blobDetails { get; set; }
+    IUser? user { get; set; } = null;
+    IList<IBlobDetail>? blobDetails { get; set; }
 
     public bool showPrivate { get; set; } = false;
     bool loadingBlobDetails { get; set; } = true;
@@ -108,7 +108,7 @@
     string overlayImageSrc { get; set; } = string.Empty;
     bool overlayImageLoading { get; set; } = false;
     bool uploadDrawVisible = false;
-    BlobDetail? overlayBlobDetail { get; set; }
+    IBlobDetail? overlayBlobDetail { get; set; }
 
     protected override Task OnInitializedAsync()
     {
@@ -127,12 +127,15 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
+
         if (firstRender || user == null)
         {
 
             try
             {
-                user = (await protectedStorage.GetAsync<User>(Consts.Storage.USER)).Value;
+                await AppState.Load(protectedStorage);
+                user = AppState.Instance?.CurrentUser;
 
                 if (user == null)
                 {
@@ -151,8 +154,6 @@
                 snackbar.Add(ex.Message, Severity.Error);
             }
         }
-
-        await base.OnAfterRenderAsync(firstRender);
     }
 
     protected async Task GetBlobDetails()
@@ -168,7 +169,8 @@
             if (responseMessage.IsSuccessStatusCode)
             {
                 string content = await responseMessage.Content.ReadAsStringAsync();
-                blobDetails = JsonConvert.DeserializeObject<List<BlobDetail>>(content);
+                var blobDetailsList = JsonConvert.DeserializeObject<List<BlobDetail>>(content);
+                blobDetails = blobDetailsList?.Select(x => (IBlobDetail)x).ToList();
 
                 if (blobDetails != null)
                 {
@@ -215,9 +217,9 @@
         return folderList;
     }
 
-    private List<BlobDetail> GetBlobDetailsList() {
+    private IList<IBlobDetail> GetBlobDetailsList() {
 
-        List<BlobDetail> detailsList = new List<BlobDetail>();
+        IList<IBlobDetail> detailsList = new List<IBlobDetail>();
         string route = GetRoute().Trim('/');
         if (string.Equals(route, "__private__"))
         {
