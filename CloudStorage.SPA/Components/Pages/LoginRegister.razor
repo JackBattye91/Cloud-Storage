@@ -46,7 +46,7 @@
 </MudGrid>
 
 @code {
-    User? user;
+    IUser? user;
 
     #if DEBUG
     string username = "jack.battye";
@@ -72,7 +72,8 @@
     {
         try
         {
-            user = (await protectedLocalStorage.GetAsync<User>("user")).Value;
+            await AppState.Load(protectedLocalStorage);
+            user = AppState.Instance?.User;
 
             if (user != null)
             {
@@ -134,6 +135,8 @@
                     }
                 }
             }
+
+            await AppState.Load(protectedLocalStorage);
         }
         catch (Exception ex)
         {
