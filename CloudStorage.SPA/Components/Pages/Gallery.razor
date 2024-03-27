@@ -68,7 +68,7 @@
 </MudContainer>
 
 @if (uploadDrawVisible) {
-    <MudDrawer @bind-Open="uploadDrawVisible" Width="500" Anchor="Anchor.Right" Elevation="1" Fixed="true" Variant="DrawerVariant.Temporary" ClipMode="DrawerClipMode.Never">
+    <MudDrawer id="drawerRight" Open="true" OpenChanged="(isOpen) => { uploadDrawVisible = isOpen; }" Width="500" Anchor="Anchor.Right" Elevation="1" Fixed="true" Variant="DrawerVariant.Temporary">
         <MudDrawerHeader>
             <MudText Typo="Typo.h5">Upload Images</MudText>
         </MudDrawerHeader>
@@ -135,7 +135,7 @@
             try
             {
                 await AppState.Load(protectedStorage);
-                user = AppState.Instance?.CurrentUser;
+                user = AppState.Instance?.User;
 
                 if (user == null)
                 {
