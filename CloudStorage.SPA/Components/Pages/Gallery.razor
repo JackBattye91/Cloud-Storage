@@ -6,6 +6,7 @@
 @inject ProtectedLocalStorage protectedStorage;
 @inject ISnackbar snackbar;
 @inject NavigationManager navManager;
+@inject ILogger<Gallery> logger;
 <PageTitle>Gallery</PageTitle>
 
 <MudContainer>
@@ -151,6 +152,7 @@
             }
             catch (Exception ex)
             {
+                logger.LogError(ex.Message);
                 snackbar.Add(ex.Message, Severity.Error);
             }
         }
@@ -180,6 +182,7 @@
         }
         catch (Exception ex)
         {
+            logger.LogError(ex.Message);
             snackbar.Add(ex.Message, Severity.Error);
         }
 
@@ -271,6 +274,7 @@
         }
         catch (Exception ex)
         {
+            logger.LogError(ex.Message);
             isOverlayVisible = false;
         }
     }
