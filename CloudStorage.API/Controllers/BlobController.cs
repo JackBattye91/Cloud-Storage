@@ -255,7 +255,7 @@ namespace CloudStorage.API.Controllers
                         Id = Guid.NewGuid().ToString(),
                         FileName = fileUpload!.FileName,
                         ContainerName = fileUpload.IsPrivate ? "private" : fileUpload.ContainerName,
-                        BlobName = $"{Guid.NewGuid()}_{DateTime.UtcNow.ToString("yyyy-MM-dd")}",
+                        BlobName = $"{Guid.NewGuid()}_{DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss")}",
                         FileExtension = fileUpload.FileExtension.Trim('.'),
                         UserId = userId!,
                         Thumbnail = fileUpload.CreateThumbnail ? $"{Guid.NewGuid()}.{fileUpload.FileExtension.Trim('.')}" : null,
