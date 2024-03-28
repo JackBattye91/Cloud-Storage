@@ -269,13 +269,13 @@ namespace CloudStorage.API.Controllers
                 {
                     try
                     {
-                        fileDataStream = await Worker.CopyTo(Request.Body);
+                        fileDataStream = await CloudStorage.Worker.CopyTo(Request.Body);
                         fileDataStream.Seek(0, SeekOrigin.Begin);
 
                         if (!fileUpload!.IsPrivate)
                         {
                             BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
-                            byte[] data = await Worker.CreateThumbnail(fileDataStream, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
+                            byte[] data = await CloudStorage.Worker.CreateThumbnail(fileDataStream, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
                             BinaryData binaryData = new BinaryData(data);
                             BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.Thumbnail}");
                             await blobClient.UploadAsync(binaryData);
@@ -528,7 +528,7 @@ namespace CloudStorage.API.Controllers
                             string b64Image = Convert.ToBase64String(memoryStream.ToArray());
 
                             BlobContainerClient thumbnailBlobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
-                            byte[] thumbnailData = Worker.CreateThumbnail(b64Image, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
+                            byte[] thumbnailData = CloudStorage.Worker.CreateThumbnail(b64Image, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
                             BinaryData thumbnailBinaryData = new BinaryData(thumbnailData);
                             blob.Thumbnail = $"{Guid.NewGuid()}.jpeg";
                             BlobClient thumbnailBlobClient = thumbnailBlobContainerClient.GetBlobClient(blob.Thumbnail);
