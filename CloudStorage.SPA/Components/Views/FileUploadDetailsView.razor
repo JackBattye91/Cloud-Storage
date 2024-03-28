@@ -56,6 +56,7 @@
             data = new byte[(int)file.Size];
             Stream stream = file.OpenReadStream(long.MaxValue);
             Base64Image = Convert.ToBase64String(await CloudStorage.Worker.CreateThumbnail(stream, 128, 128));
+            stream.Dispose();
             StateHasChanged();
         }
         catch (Exception ex)
@@ -110,6 +111,7 @@
             {
                 await OnFileUploaded.InvokeAsync();
             }
+            memStream.Dispose();
         }
         catch (Exception ex)
         {
