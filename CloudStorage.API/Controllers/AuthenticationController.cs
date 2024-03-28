@@ -52,7 +52,7 @@ namespace TrackASnack_WebAPI.Controllers
                 if (rc.Success)
                 {
                     database = CloudStorage.API.Consts.Database.DATABASE;
-                    passwordPepper = "JackBattyePepperString";
+                    passwordPepper = appSettings.Database.PasswordPepper;
 
                     if (string.IsNullOrEmpty(database) || string.IsNullOrEmpty(passwordPepper))
                     {
@@ -137,7 +137,7 @@ namespace TrackASnack_WebAPI.Controllers
 
                     IDictionary<string, string> jwtBody = new Dictionary<string, string>();
                     DateTime issuedAt = DateTime.UtcNow;
-                    DateTime expiresAt = issuedAt.AddSeconds(3600);
+                    DateTime expiresAt = issuedAt.AddSeconds(appSettings.Jwt.ExpiresAfterSeconds);
 
                     SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(securityKey));
                     SigningCredentials signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
@@ -308,7 +308,7 @@ namespace TrackASnack_WebAPI.Controllers
 
                     IDictionary<string, string> jwtBody = new Dictionary<string, string>();
                     DateTime issuedAt = DateTime.UtcNow;
-                    DateTime expiresAt = issuedAt.AddSeconds(3600);
+                    DateTime expiresAt = issuedAt.AddSeconds(appSettings.Jwt.ExpiresAfterSeconds);
 
                     SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(securityKey));
                     SigningCredentials signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature);
