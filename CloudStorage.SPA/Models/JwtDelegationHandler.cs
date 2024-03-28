@@ -87,7 +87,7 @@ namespace CloudStorage.SPA.Models
 
                     int baseUrlEnd = pRequestMessage.RequestUri!.AbsoluteUri.IndexOf(pRequestMessage.RequestUri.AbsolutePath);
                     string baseUrl = pRequestMessage.RequestUri.AbsoluteUri.Substring(0, baseUrlEnd);
-                    string authUri = $"{baseUrl}/Authentication/refresh/{Token.RefreshToken}";
+                    string authUri = $"{baseUrl}/Authentication/refresh/{Token!.RefreshToken}";
 
                     HttpClient client = new HttpClient();
                     HttpRequestMessage refreshRequest = new HttpRequestMessage(HttpMethod.Get, authUri);
