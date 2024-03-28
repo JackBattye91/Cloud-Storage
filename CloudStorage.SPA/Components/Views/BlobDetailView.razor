@@ -45,7 +45,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await GetThumbnail();
+        if (firstRender)
+        {
+            await GetThumbnail();
+        }
+        
         await base.OnAfterRenderAsync(firstRender);
     }
 
