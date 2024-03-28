@@ -17,8 +17,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddHttpClient();
-builder.Services.AddHttpClient("api", x => {
-    x.BaseAddress = new Uri(appSettings.ApiBaseUrl);
+builder.Services.AddHttpClient("api", x =>
+{
+    x.BaseAddress = new Uri(appSettings!.ApiBaseUrl);
 }).AddHttpMessageHandler<JwtDelegationHandler>();
 
 builder.Services.AddMudServices();
