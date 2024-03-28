@@ -269,14 +269,20 @@
                 overlayImageSrc = $"data:image/jpg;base64, {base64Image}";
                 overlayImageLoading = false;
                 overlayBlobDetail = pBlobDetail;
-                StateHasChanged();
+            }
+            else
+            {
+                isOverlayVisible = false;
+                overlayImageLoading = false;
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex.Message);
             isOverlayVisible = false;
+            overlayImageLoading = false;
         }
+        StateHasChanged();
     }
 
     private List<Breadcrumb> GetBreadcrumbs()
