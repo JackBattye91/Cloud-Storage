@@ -5,6 +5,7 @@
 <MudStack>
     <MudTextField @bind-Value="FileName" Label="File name" Required="true" Disabled="isWorking" />
     <MudCheckBox @bind-Checked="isPrivate" Label="Is private?" Dense="true" Disabled="isWorking" />
+    <MudCheckBox @bind-Checked="createThumbnail" Label="Create Thumbnail?" Dense="true" Disabled="isWorking" />
 
     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0" Required="true" Disabled="isWorking" Accept="image/jpeg">
         <ButtonTemplate>
@@ -42,6 +43,7 @@
     string? FileName { get; set; }
     string? Base64Image { get; set; }
     bool isPrivate { get; set; } = false;
+    bool createThumbnail { get; set; } = true;
     byte[]? data { get; set; }
     bool isWorking { get; set; } = false;
 
@@ -53,7 +55,7 @@
             long fileSize = file.Size;
             data = new byte[(int)file.Size];
             Stream stream = file.OpenReadStream(long.MaxValue);
-            Base64Image = Convert.ToBase64String(await CloudStorage.Worker.CreateThumbnail(stream, 128, 128));// Convert.ToBase64String(data);
+            Base64Image = Convert.ToBase64String(await CloudStorage.Worker.CreateThumbnail(stream, 128, 128));
             StateHasChanged();
         }
         catch (Exception ex)
@@ -79,7 +81,8 @@
                 ContainerName = "pictures",
                 FileExtension = File.Name.Remove(0, File.Name.LastIndexOf('.')),
                 FileName = FileName,
-                IsPrivate = isPrivate
+                IsPrivate = isPrivate,
+                CreateThumbnail = createThumbnail
             };
 
             string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
