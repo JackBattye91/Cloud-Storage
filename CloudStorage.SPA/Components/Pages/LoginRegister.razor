@@ -144,7 +144,6 @@
         }
         isLoggingIn = false;
     }
-
     private async Task Register()
     {
         await RegisterForm.Validate();
@@ -189,6 +188,7 @@
         }
     }
 
+    #region VALIDATION
     private async Task<string?> ValidateRegisterUsername(string value)
     {
         try
@@ -237,7 +237,6 @@
 
         return "Required";
     }
-
     private string? ValidateRegisterPassword(string value)
     {
         try
@@ -259,4 +258,5 @@
         }
         return "Passwords do not match";
     }
+    #endregion
 }
