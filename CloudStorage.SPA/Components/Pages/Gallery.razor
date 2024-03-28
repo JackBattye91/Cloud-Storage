@@ -61,7 +61,7 @@
 
             @foreach (BlobDetail blobDetail in GetBlobDetailsList())
             {
-                <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="() => { ShowImage(blobDetail); }"/>
+                <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="() => { ShowImage(blobDetail); }" OnDelete="async ()=>{ await DeleteImage(blobDetail);  }"/>
             }
         </MudGrid>
     }
@@ -90,7 +90,7 @@
 
         <MudStack Style="position: absolute; top: 0; right: 0; background-color: #00000055" Justify="Justify.Center">
             <MudItem>
-                <MudIconButton Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick='() => { DeleteImage(); }' />
+                <MudIconButton Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick='async () => { await DeleteImage(overlayBlobDetail); overlayBlobDetail = null; isOverlayVisible = false; }' />
             </MudItem>
         </MudStack>
     }
@@ -339,14 +339,26 @@
         }
     }
 
-    private void DeleteImage()
+    private async Task DeleteImage(IBlobDetail? pBlobDetail)
     {
-        if (overlayBlobDetail != null)
+        try
         {
-            blobDetails?.Remove(overlayBlobDetail);
-            isOverlayVisible = false;
-            overlayBlobDetail = null;
-            StateHasChanged();
+            if (pBlobDetail != null)
+            {
+                HttpClient client = clientFactory.CreateClient("api");
+                HttpRequestMessage deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"Blob/{pBlobDetail.Id}");
+                HttpResponseMessage deleteResponse = await client.SendAsync(deleteRequest);
+
+                if (deleteResponse.IsSuccessStatusCode)
+                {
+                    blobDetails?.Remove(pBlobDetail);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
         }
     }
 }
