@@ -6,7 +6,7 @@
     <MudTextField @bind-Value="FileName" Label="File name" Required="true" Disabled="isWorking" />
     <MudCheckBox @bind-Checked="isPrivate" Label="Is private?" Dense="true" Disabled="isWorking" />
 
-    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0" Required="true" Disabled="isWorking">
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0" Required="true" Disabled="isWorking" Accept="image/jpeg">
         <ButtonTemplate>
             <MudButton FullWidth="true" HtmlTag="label"
                         Variant="Variant.Filled"
@@ -53,8 +53,7 @@
             long fileSize = file.Size;
             data = new byte[(int)file.Size];
             Stream stream = file.OpenReadStream(long.MaxValue);
-            await stream.ReadAsync(data, 0, (int)fileSize);
-            Base64Image = Convert.ToBase64String(data);
+            Base64Image = Convert.ToBase64String(await CloudStorage.Worker.CreateThumbnail(stream, 128, 128));// Convert.ToBase64String(data);
             StateHasChanged();
         }
         catch (Exception ex)
