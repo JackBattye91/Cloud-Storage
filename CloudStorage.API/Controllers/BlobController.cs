@@ -252,13 +252,13 @@ namespace CloudStorage.API.Controllers
                 {
                     blobDetail = new BlobDetail
                     {
+                        Id = Guid.NewGuid().ToString(),
                         FileName = fileUpload!.FileName,
                         ContainerName = fileUpload.IsPrivate ? "private" : fileUpload.ContainerName,
                         BlobName = $"{Guid.NewGuid()}_{DateTime.UtcNow.ToString("yyyy-MM-dd")}",
                         FileExtension = fileUpload.FileExtension.Trim('.'),
                         UserId = userId!,
-                        Id = Guid.NewGuid().ToString(),
-                        Thumbnail = fileUpload.IsPrivate ? null : $"{Guid.NewGuid()}.{fileUpload.FileExtension.Trim('.')}",
+                        Thumbnail = fileUpload.CreateThumbnail ? $"{Guid.NewGuid()}.{fileUpload.FileExtension.Trim('.')}" : null,
                         Private = fileUpload.IsPrivate,
                         IV = fileUpload.IsPrivate ? Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)) : null,
                         Created = DateTime.UtcNow
@@ -272,7 +272,7 @@ namespace CloudStorage.API.Controllers
                         fileDataStream = await CloudStorage.Worker.CopyTo(Request.Body);
                         fileDataStream.Seek(0, SeekOrigin.Begin);
 
-                        if (!fileUpload!.IsPrivate)
+                        if (fileUpload!.CreateThumbnail)
                         {
                             BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
                             byte[] data = await CloudStorage.Worker.CreateThumbnail(fileDataStream, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
@@ -444,7 +444,7 @@ namespace CloudStorage.API.Controllers
 
                 if (rc.Success)
                 {
-                    if (!blobDetail!.Private)
+                    if (!string.IsNullOrEmpty(blobDetail!.Thumbnail))
                     {
                         MemoryStream memoryStream = new MemoryStream();
 
