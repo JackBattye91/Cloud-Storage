@@ -5,19 +5,23 @@ using CloudStorage.Interfaces;
 using CloudStorage.Models;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using System.Net.Http;
+using System.Threading;
 
 namespace CloudStorage.SPA.Models
 {
     public class JwtDelegationHandler : DelegatingHandler
     {
-        private readonly ProtectedLocalStorage ProtectedStorage;
-        private static IToken? Token { get; set; }
-        private AppSettings AppSettings { get; set; }
 
-        public JwtDelegationHandler(IOptions<AppSettings> pAppSettings, ProtectedLocalStorage pProtectedLocalStorage)
+        private readonly ProtectedLocalStorage ProtectedStorage;
+        private readonly IHttpClientFactory ClientFactory;
+        private static IToken? Token { get; set; }
+        private static bool GettingRefreshToken { get; set; } = false;
+
+        public JwtDelegationHandler(ProtectedLocalStorage pProtectedLocalStorage, IHttpClientFactory pHttpClientFactory)
         {
-            AppSettings = pAppSettings.Value;
             ProtectedStorage = pProtectedLocalStorage;
+            ClientFactory = pHttpClientFactory;
             
             if (AppState.Instance != null)
             {
@@ -32,20 +36,24 @@ namespace CloudStorage.SPA.Models
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            if (request.RequestUri?.AbsolutePath == "/Authentication")
+            if (request.RequestUri?.AbsolutePath.StartsWith("/Authentication") == true)
             {
                 HttpResponseMessage authResponse = await base.SendAsync(request, cancellationToken);
-
                 if (authResponse.IsSuccessStatusCode)
                 {
                     string auth = await authResponse.Content.ReadAsStringAsync();
                     Token = JsonConvert.DeserializeObject<Token>(auth);
                 }
 
-                return authResponse; 
+                return authResponse;
             }
 
-            if (await IsValidJwt())
+            if (Token!.Expires <= DateTime.UtcNow)
+            {
+                await GetRefreshToken(request, cancellationToken);
+            }
+
+            if (IsValidJwt(cancellationToken))
             {
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token!.WebToken);
             }
@@ -53,34 +61,54 @@ namespace CloudStorage.SPA.Models
             return await base.SendAsync(request, cancellationToken);
         }
 
-        private async Task<bool> IsValidJwt() { 
+        private bool IsValidJwt(CancellationToken cancellationToken) { 
             if (Token == null)
             {
                 Token = AppState.Instance?.Token;
             }
-            await UpdateJwt();
 
             return (Token != null);
         }
 
-        private async Task UpdateJwt()
+        private async Task GetRefreshToken(HttpRequestMessage pRequestMessage, CancellationToken cancellationToken)
         {
-            if (Token?.Expires <= DateTime.UtcNow)
+            try
             {
-                string authUri = Path.Combine(AppSettings.ApiBaseUrl, $"Authentication/refresh/{Token.RefreshToken}");
-
-                HttpClient httpClient = new HttpClient();
-                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, authUri);
-                requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token.WebToken);
-
-                HttpResponseMessage refreshResponse = await httpClient.SendAsync(requestMessage);
-
-                if (refreshResponse.IsSuccessStatusCode)
+                if (GettingRefreshToken)
                 {
-                    string auth = await refreshResponse.Content.ReadAsStringAsync();
-                    Token = JsonConvert.DeserializeObject<Token>(auth);
+                    while (GettingRefreshToken)
+                    {
+                        await Task.Delay(100);
+                    }
                 }
+                else
+                {
+                    GettingRefreshToken = true;
+
+                    int baseUrlEnd = pRequestMessage.RequestUri!.AbsoluteUri.IndexOf(pRequestMessage.RequestUri.AbsolutePath);
+                    string baseUrl = pRequestMessage.RequestUri.AbsoluteUri.Substring(0, baseUrlEnd);
+                    string authUri = $"{baseUrl}/Authentication/refresh/{Token.RefreshToken}";
+
+                    HttpClient client = new HttpClient();
+                    HttpRequestMessage refreshRequest = new HttpRequestMessage(HttpMethod.Get, authUri);
+                    refreshRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token!.WebToken);
+                    HttpResponseMessage refreshResponse = await client.SendAsync(refreshRequest, cancellationToken);
+
+                    if (refreshResponse.IsSuccessStatusCode)
+                    {
+                        string auth = await refreshResponse.Content.ReadAsStringAsync();
+                        Token = JsonConvert.DeserializeObject<Token>(auth);
+                    }
+
+                }
+
             }
+            catch (Exception ex)
+            {
+                
+            }
+
+            GettingRefreshToken = false;
         }
     }
 }
