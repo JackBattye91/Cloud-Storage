@@ -312,6 +312,8 @@ namespace CloudStorage.API.Controllers
                             memoryStream.Position = 0;
                             await blobClient.UploadAsync(memoryStream);
                         }
+
+                        memoryStream.Dispose();
                     }
                     else
                     {
@@ -332,7 +334,14 @@ namespace CloudStorage.API.Controllers
                     }
                 }
 
-                return new CreatedResult();
+                if (rc.Success)
+                {
+                    fileDataStream?.Close();
+                    
+
+                    return new CreatedResult();
+                }
+                
             }
             catch (Exception ex) {
                 rc.AddError(new Error(4, ex));
