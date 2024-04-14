@@ -1,0 +1,25 @@
+﻿@page "/login"
+@model CloudStorage.WebApp.Pages.LoginRegisterModel
+@{
+    ViewData["Title"] = "Login/Register";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-6">
+            <form>
+                <div class="mb-3 mt-3">
+                    <label for="username" class="form-label">Username:</label>
+                    <input type="email" class="form-control" id="username" placeholder="Username" name="username">
+                </div>
+            </form>
+
+            <div class="mb-3">
+                <label for="pwd" class="form-label">Password:</label>
+                <input type="password" class="form-control" id="pwd" placeholder="password" name="pswd">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+    </div>
+</div>
