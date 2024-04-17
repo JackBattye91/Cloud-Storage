@@ -13,8 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Testing", "Testing", "{07BF
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlazorApp1", "BlazorApp1\BlazorApp1.csproj", "{60A324D6-F5AA-40A9-BC92-A7FE7E9D117C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudStorage.WebApp", "CloudStorage.WebApp\CloudStorage.WebApp.csproj", "{C17AB251-828A-4852-97B2-83B50357C40E}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,10 +35,6 @@ Global
 		{60A324D6-F5AA-40A9-BC92-A7FE7E9D117C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60A324D6-F5AA-40A9-BC92-A7FE7E9D117C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60A324D6-F5AA-40A9-BC92-A7FE7E9D117C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C17AB251-828A-4852-97B2-83B50357C40E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C17AB251-828A-4852-97B2-83B50357C40E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C17AB251-828A-4852-97B2-83B50357C40E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C17AB251-828A-4852-97B2-83B50357C40E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
