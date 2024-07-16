@@ -67,7 +67,7 @@ namespace CloudStorage.API.V2.Controllers
                 TokenDTO token = new TokenDTO();
                 token.Expires = DateTime.UtcNow.AddMinutes(60);
                 token.Token = TokenUtilities.CreateToken(user, _appSettings, 60);
-                token.User = Worker.Convert(user);
+                token.User = Converter.Convert(user);
 
                 return Ok(token);
             }
