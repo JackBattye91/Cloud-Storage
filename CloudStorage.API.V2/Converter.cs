@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace CloudStorage.API.V2
 {
-    public class Worker
+    public class Converter
     {
         public static UserDTO? Convert(User pUser)
         {
