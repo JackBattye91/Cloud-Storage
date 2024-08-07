@@ -1,4 +1,5 @@
 ﻿using CloudStorage.API.V2.Models;
+using JB.Common;
 
 namespace CloudStorage.API.V2.Repos
 {
@@ -13,9 +14,47 @@ namespace CloudStorage.API.V2.Repos
 
     public class RoleRepo : IRoleRepo
     {
-        public Task<Role> CreateAsync(Role user)
+        private readonly JB.NoSqlDatabase.IWrapper _noSql;
+
+        public RoleRepo(JB.NoSqlDatabase.IWrapper noSql)
         {
-            throw new NotImplementedException();
+            _noSql = noSql;
+        }
+
+        public async Task<Role> CreateAsync(Role user)
+        {
+            IReturnCode rc = new ReturnCode();
+            Role? createdRole = null;
+
+            try
+            {
+                if (rc.Success)
+                {
+                    var addRoleRc = await _noSql.AddItem("", "", user);
+
+                    if (addRoleRc.Success)
+                    {
+                        createdRole = addRoleRc.Data;
+                    }
+
+                    if (addRoleRc.Failed)
+                    {
+                        ErrorWorker.CopyErrors(addRoleRc, rc);
+                        throw new JB.Common.Errors.JBException("Unable to create Role");
+                    }
+                }
+
+
+                if (rc.Success && createdRole != null)
+                {
+                    return createdRole;
+                }
+            }
+            catch (Exception ex)
+            {
+                rc.AddError(new Error(ex));
+                throw;
+            }
         }
 
         public Task DeleteAsync(Role user)
