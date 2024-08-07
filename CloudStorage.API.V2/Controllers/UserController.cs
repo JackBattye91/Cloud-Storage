@@ -53,15 +53,60 @@ namespace CloudStorage.API.V2.Controllers
                     return BadRequest();
                 }
 
-                /*
-                Microsoft.AspNetCore.Identity.SignInResult loginResult = new Microsoft.AspNetCore.Identity.SignInResult();// await _signInManager.PasswordSignInAsync(user, pLoginDto.Password!, false, false);
-
+                Microsoft.AspNetCore.Identity.SignInResult loginResult =  await _signInManager.PasswordSignInAsync(user, pLoginDto.Password!, false, false);
                 if (!loginResult.Succeeded)
                 {
                     return BadRequest();
                 }
-                */
 
+                RefreshToken refreshToken = await _userService.CreateRefreshTokenAsync(user);
+                
+                TokenDTO token = new TokenDTO();
+                token.Expires = DateTime.UtcNow.AddMinutes(60);
+                token.Token = TokenUtilities.CreateToken(user, _appSettings, 60);
+                token.User = Converter.Convert(user);
+                token.RefreshToken = refreshToken.Id;
+
+                user.LastLogin = DateTime.UtcNow;
+                _ = _userService.UpdateAsync(user);
+
+                return Ok(token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Login Failed");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPost]
+        [Route("refresh/{token}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RefreshToken([FromRoute(Name = "token")]string pToken)
+        {
+            try
+            {
+                if (await TokenUtilities.ValidateTokenWithoutDate(Request, _appSettings) == false)
+                {
+                    return Unauthorized();
+                }
+
+                string? email = TokenUtilities.GetSubjectEmail(Request);
+                User user;
+                if (!string.IsNullOrEmpty(email))
+                {
+                    user = await _userService.GetByEmailAsync(email);
+                }
+                else
+                {
+                    _logger.LogError("Unable to get user with email");
+                    return BadRequest();
+                }
+
+                if (await _userService.ValidationRefreshTokenAsync(email, pToken) == false)
+                {
+                    return Unauthorized();
+                }
 
 
                 TokenDTO token = new TokenDTO();
@@ -73,11 +118,10 @@ namespace CloudStorage.API.V2.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login Failed");
+                _logger.LogError(ex, "Refresh Token Failed");
                 return StatusCode(500);
             }
         }
-
 
         private bool Validate(LoginDTO pLoginDto)
         {
