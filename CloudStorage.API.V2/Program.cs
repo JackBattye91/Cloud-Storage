@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using JB.Blob;
+using JB.Email;
+using JB.NoSqlDatabase;
 
 namespace CloudStorage.API.V2
 {
@@ -18,14 +21,14 @@ namespace CloudStorage.API.V2
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers().AddNewtonsoftJson();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             IConfiguration config = builder.Configuration;
             builder.Services.Configure<AppSettings>(config);
-            AppSettings? appSettings = config.Get<AppSettings>();
+            AppSettings appSettings = config.Get<AppSettings>() ?? new AppSettings();
 
             builder.Services.AddAuthentication(x =>
             {
@@ -35,20 +38,7 @@ namespace CloudStorage.API.V2
             }).AddJwtBearer(o => {
                 o.RequireHttpsMetadata = false;
                 o.SaveToken = true;
-                o.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidIssuer = appSettings!.Jwt.Issuer,
-                    ValidAudience = appSettings!.Jwt.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(appSettings!.Jwt.Key)),
-                    //LifetimeValidator = new LifetimeValidator(CustomLifetimeValidator.Create),
-
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidateLifetime = true,
-
-                    RequireSignedTokens = true
-                };
+                o.TokenValidationParameters = TokenUtilities.ValidationParameters(appSettings);
             });
             builder.Services.AddAuthorization();
 
@@ -56,10 +46,12 @@ namespace CloudStorage.API.V2
                 config.User.RequireUniqueEmail = true;
             }).AddDefaultTokenProviders();
 
-            builder.Services.AddSingleton<IBlobService, BlobService>();
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserRepo, UserRepo>();
             builder.Services.AddSingleton<IRoleRepo, RoleRepo>();
+            builder.Services.AddBlobService();
+            builder.Services.AddEmailService();
+            builder.Services.AddNoSqlDatabaseService();
 
             builder.Services.AddTransient<IUserStore<User>, UserStore>();
             builder.Services.AddTransient<IRoleStore<Role>, RoleStore>();
