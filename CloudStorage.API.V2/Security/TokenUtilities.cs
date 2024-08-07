@@ -9,6 +9,41 @@ namespace CloudStorage.API.V2.Security
 {
     public class TokenUtilities
     {
+        public static TokenValidationParameters ValidationParameters(AppSettings appSettings)
+        {
+            return new TokenValidationParameters
+            {
+                ValidIssuer = appSettings!.Jwt.Issuer,
+                ValidAudience = appSettings!.Jwt.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(appSettings!.Jwt.Key)),
+                LifetimeValidator = new LifetimeValidator(CustomLifetimeValidator.Create),
+
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = true,
+
+                RequireSignedTokens = true
+            };
+        }
+
+        public static TokenValidationParameters ValidationParametersWithoutDate(AppSettings appSettings)
+        {
+            return new TokenValidationParameters
+            {
+                ValidIssuer = appSettings!.Jwt.Issuer,
+                ValidAudience = appSettings!.Jwt.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(appSettings!.Jwt.Key)),
+
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = true,
+
+                RequireSignedTokens = true
+            };
+        }
+
         public static string CreateToken(User user, AppSettings appSettings, int sessionTimeoutMinutes = 60)
         {
             DateTime now = DateTime.UtcNow;
@@ -37,6 +72,50 @@ namespace CloudStorage.API.V2.Security
             string encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwtToken);
 
             return encodedJwt;
+        }
+
+        public static string GetSubjectEmail(HttpRequest pRequest)
+        {
+            string? bearerToken = pRequest.Headers.Authorization.FirstOrDefault();
+            if (bearerToken == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            JwtSecurityTokenHandler hander = new JwtSecurityTokenHandler();
+
+            JwtSecurityToken securityToken = hander.ReadJwtToken(bearerToken);
+            string? email = securityToken.Claims.Where(x => x.Type == JwtRegisteredClaimNames.Email).FirstOrDefault()?.Value;
+
+            return email ?? string.Empty;
+        }
+
+        public static async Task<bool> ValidateToken(HttpRequest pRequest, AppSettings appSettings)
+        {
+            string? bearerToken = pRequest.Headers.Authorization.FirstOrDefault();
+
+            if (bearerToken == null)
+            {
+                return false;
+            }
+
+            JwtSecurityTokenHandler hander = new JwtSecurityTokenHandler();
+            var validation = await hander.ValidateTokenAsync(bearerToken, ValidationParameters(appSettings));
+            return validation.IsValid;
+        }
+        public static async Task<bool> ValidateTokenWithoutDate(HttpRequest pRequest, AppSettings appSettings)
+        {
+            string? bearerToken = pRequest.Headers.Authorization.FirstOrDefault();
+
+            if (bearerToken == null)
+            {
+                return false;
+            }
+
+            JwtSecurityTokenHandler hander = new JwtSecurityTokenHandler();
+            var validation = await hander.ValidateTokenAsync(bearerToken, ValidationParametersWithoutDate(appSettings));
+
+            return validation.IsValid;
         }
     }
 }
