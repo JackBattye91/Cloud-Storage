@@ -1,5 +1,6 @@
 ﻿using CloudStorage.API.V2.Models;
 using JB.Common;
+using Microsoft.Extensions.Options;
 
 namespace CloudStorage.API.V2.Repos
 {
@@ -14,67 +15,80 @@ namespace CloudStorage.API.V2.Repos
 
     public class RoleRepo : IRoleRepo
     {
+        private readonly ILogger<RoleRepo> _logger;
         private readonly JB.NoSqlDatabase.IWrapper _noSql;
+        private readonly AppSettings _appSettings;
 
-        public RoleRepo(JB.NoSqlDatabase.IWrapper noSql)
+        public RoleRepo(ILogger<RoleRepo> logger, JB.NoSqlDatabase.IWrapper noSql, IOptions<AppSettings> appSettings)
         {
+            _logger = logger;
             _noSql = noSql;
+            _appSettings = appSettings.Value;
         }
 
-        public async Task<Role> CreateAsync(Role user)
+        public async Task<Role> CreateAsync(Role pRole)
         {
-            IReturnCode rc = new ReturnCode();
-            Role? createdRole = null;
+            pRole.Id = Guid.NewGuid().ToString();
+            var addRoleRc = await _noSql.AddItem<Role>(_appSettings.Database.Database, Consts.Database.RoleContainer, pRole);
 
-            try
+            if (addRoleRc.Success)
             {
-                if (rc.Success)
+                return pRole;
+            }
+
+            throw new Exception("Unable to create role");
+        }
+
+        public async Task DeleteAsync(Role pRole)
+        {
+            var deleteRoleRc = await _noSql.DeleteItem<Role>(_appSettings.Database.Database, Consts.Database.RoleContainer, pRole.Id, pRole.Id);
+
+            if (deleteRoleRc.Success)
+            {
+                return;
+            }
+
+            throw new Exception("Unable to delete role");
+        }
+
+        public async Task<Role> GetByIdAsync(string id)
+        {
+            var addRoleRc = await _noSql.GetItem<Role>(_appSettings.Database.Database, Consts.Database.RoleContainer, id);
+
+            if (addRoleRc.Success)
+            {
+                return addRoleRc.Data!;
+            }
+
+            throw new Exception("Unable to get role");
+        }
+
+        public async Task<Role> GetByNameAsync(string name)
+        {
+            string query = $"SELECT * FROM c WHERE c.Name = {name}";
+            var getRoleRc = await _noSql.GetItems<Role>(_appSettings.Database.Database, Consts.Database.RoleContainer, query);
+
+            if (getRoleRc.Success)
+            {
+                if (getRoleRc.Data!.Count == 1)
                 {
-                    var addRoleRc = await _noSql.AddItem("", "", user);
-
-                    if (addRoleRc.Success)
-                    {
-                        createdRole = addRoleRc.Data;
-                    }
-
-                    if (addRoleRc.Failed)
-                    {
-                        ErrorWorker.CopyErrors(addRoleRc, rc);
-                        throw new JB.Common.Errors.JBException("Unable to create Role");
-                    }
-                }
-
-
-                if (rc.Success && createdRole != null)
-                {
-                    return createdRole;
+                    return getRoleRc.Data[0];
                 }
             }
-            catch (Exception ex)
+
+            throw new Exception("Unable to get role");
+        }
+
+        public async Task<Role> UpdateAsync(Role pRole)
+        {
+            var getRoleRc = await _noSql.UpdateItem<Role>(_appSettings.Database.Database, Consts.Database.RoleContainer, pRole, pRole.Id, pRole.Id);
+
+            if (getRoleRc.Success)
             {
-                rc.AddError(new Error(ex));
-                throw;
+                return getRoleRc.Data!;
             }
-        }
 
-        public Task DeleteAsync(Role user)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<Role> GetByIdAsync(string id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<Role> GetByNameAsync(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<Role> UpdateAsync(Role user)
-        {
-            throw new NotImplementedException();
+            throw new Exception("Unable to update role");
         }
     }
 }
