@@ -7,7 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="JB_Library_Blob" Version="1.0.44" />
+    <PackageReference Include="JB_Library_Common" Version="1.0.44" />
+    <PackageReference Include="JB_Library_Email" Version="1.0.44" />
+    <PackageReference Include="JB_Library_NoSqlDatabase" Version="1.0.44" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.7" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
