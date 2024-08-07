@@ -8,8 +8,16 @@
         public int ExpiresAfterSeconds { get; set; } = 3600;
     }
 
+    public class DatabaseSettings
+    {
+        public string Database { get; set; } = string.Empty;
+        public string ConnectionString { get; set; } = string.Empty;
+    }
+
     public class AppSettings
     {
         public JwtSettings Jwt { get; set; } = new JwtSettings();
+
+        public DatabaseSettings Database { get; set; } = new DatabaseSettings();
     }
 }
