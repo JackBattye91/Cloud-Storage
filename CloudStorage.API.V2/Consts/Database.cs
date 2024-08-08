@@ -2,9 +2,8 @@
 {
     public class Database
     {
-        public const string UserContainer = "User";
-        public const string RoleContainer = "Role";
+        public const string UserContainer = "Users";
+        public const string RoleContainer = "Roles";
         public const string RefreshTokenContainer = "RefreshToken";
-
     }
 }
