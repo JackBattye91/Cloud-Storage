@@ -49,9 +49,9 @@ namespace CloudStorage.API.V2
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserRepo, UserRepo>();
             builder.Services.AddSingleton<IRoleRepo, RoleRepo>();
-            builder.Services.AddBlobService();
+            builder.Services.AddBlobService(appSettings.Blob.ConnectionString);
             builder.Services.AddEmailService();
-            builder.Services.AddNoSqlDatabaseService();
+            builder.Services.AddNoSqlDatabaseService(appSettings.Database.ConnectionString);
 
             builder.Services.AddTransient<IUserStore<User>, UserStore>();
             builder.Services.AddTransient<IRoleStore<Role>, RoleStore>();
