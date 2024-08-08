@@ -54,12 +54,39 @@ namespace CloudStorage.API.V2.Repos
 
         public async Task<User> GetByIdAsync(string id)
         {
-            return await Task.FromResult(new User { Id = id });
+            string query = $"SELECT * FROM c WHERE c.id = {id}";
+            var getUserRc = await _noSqlWrapper.GetItems<User>(_appSettings.Database.Database, Consts.Database.UserContainer, query);
+
+            if (getUserRc.Success)
+            {
+                if (getUserRc.Data?.Count == 1)
+                {
+                    return getUserRc.Data[0];
+                }
+            }
+
+            throw new NotFoundException();
         }
 
         public async Task<User> GetByUsernameAsync(string username)
         {
             string query = $"SELECT * FROM c WHERE c.Username = {username}";
+            var getUserRc = await _noSqlWrapper.GetItems<User>(_appSettings.Database.Database, Consts.Database.UserContainer, query);
+
+            if (getUserRc.Success)
+            {
+                if (getUserRc.Data?.Count == 1)
+                {
+                    return getUserRc.Data[0];
+                }
+            }
+
+            throw new NotFoundException();
+        }
+
+        public async Task<User> GetByEmailAsync(string username)
+        {
+            string query = $"SELECT * FROM c WHERE c.Email = {username}";
             var getUserRc = await _noSqlWrapper.GetItems<User>(_appSettings.Database.Database, Consts.Database.UserContainer, query);
 
             if (getUserRc.Success)
