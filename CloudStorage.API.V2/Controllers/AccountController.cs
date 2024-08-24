@@ -35,6 +35,7 @@ namespace CloudStorage.API.V2.Controllers
                     return BadRequest();
                 }
 
+                user.Id = Guid.NewGuid().ToString();
                 user.Created = DateTime.UtcNow;
                 user.Updated = DateTime.UtcNow;
                 user = await _userService.CreateAsync(user);

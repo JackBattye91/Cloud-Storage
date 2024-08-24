@@ -55,6 +55,7 @@ namespace CloudStorage.API.V2.Security
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, now.ToString("yyyy-MM-ddThh:mm:ssK")),
 
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim(JwtRegisteredClaimNames.GivenName, user.Forenames),
                 new Claim(JwtRegisteredClaimNames.FamilyName, user.Surname),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
