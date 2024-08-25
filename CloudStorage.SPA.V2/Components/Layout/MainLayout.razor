@@ -1,17 +1,31 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+ @* Required *@
+<MudThemeProvider Theme="CloudTheme" />
+<MudPopoverProvider />
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+@* Needed for dialogs *@
+<MudDialogProvider />
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+@* Needed for snackbars *@
+<MudSnackbarProvider />
+
+<MudLayout>
+    <NavMenu/>
+    <MudMainContent> 
+        @Body
+    </MudMainContent>
+
+</MudLayout>
+
+@code {
+    MudTheme CloudTheme = new MudTheme() {
+        PaletteLight = new PaletteLight() {
+            Primary = Colors.Cyan.Default
+        },
+        PaletteDark = new PaletteDark() {
+
+        },
+
+    };
+}

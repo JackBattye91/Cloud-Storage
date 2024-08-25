@@ -1,24 +1,31 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">CloudStorage.SPA.V2</a>
-    </div>
-</div>
+﻿@rendermode InteractiveServer
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<MudAppBar>
+    <MudIconButton Icon="@Icons.Material.Filled.Menu"  OnClick="@((e) => DrawerToggle())" />
+    Cloud Storage
+</MudAppBar>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+<MudDrawer @bind-Open="@_drawerOpen" Anchor="Anchor.Start" Width="250px" Height="100vh" Variant="@DrawerVariant.Temporary">
+    <MudDrawerContainer>
+        <MudNavMenu>
+            <MudNavLink Href="/Storage" Match="NavLinkMatch.All">Storage</MudNavLink>
+            <MudNavLink Href="/account" Match="NavLinkMatch.Prefix">Account</MudNavLink>
+            <MudNavGroup Title="Settings" Expanded="true">
+                <MudNavLink Href="/users"  Match="NavLinkMatch.Prefix">Account</MudNavLink>
+                <MudNavLink Href="/security"  Match="NavLinkMatch.Prefix">Security</MudNavLink>
+            </MudNavGroup>
+            <MudNavLink Href="/about"  Match="NavLinkMatch.Prefix">About</MudNavLink>
+        </MudNavMenu>
+    </MudDrawerContainer>
+</MudDrawer>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
-    </nav>
-</div>
 
+@code {
+    bool _drawerOpen { get; set; } = false;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+}
