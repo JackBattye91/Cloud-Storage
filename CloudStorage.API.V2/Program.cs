@@ -40,9 +40,11 @@ namespace CloudStorage.API.V2
                 o.SaveToken = true;
                 o.TokenValidationParameters = TokenUtilities.ValidationParameters(appSettings);
             });
-            builder.Services.AddAuthorization(config => {
-                config.AddPolicy("Password", policy => { policy.RequireClaim("amr", "pwd", "mfa"); });
-                config.AddPolicy("MFA", policy => { policy.RequireClaim("amr", "mfa"); });
+            builder.Services.AddAuthorization(config =>
+            { 
+                config.AddPolicy("Password", policy => policy.RequireClaim("amr", "pwd", "mfa"));
+                config.AddPolicy("MFA", policy => policy.RequireClaim("amr", "mfa"));
+                config.AddPolicy("Full", policy => policy.RequireClaim("adm", "true"));
             });
 
             builder.Services.AddIdentity<User, Role>(config => { 
