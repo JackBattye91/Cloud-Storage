@@ -40,6 +40,7 @@ namespace CloudStorage.API.V2
                 o.SaveToken = true;
                 o.TokenValidationParameters = TokenUtilities.ValidationParameters(appSettings);
             });
+
             builder.Services.AddAuthorization(config =>
             { 
                 config.AddPolicy("Password", policy => policy.RequireClaim("amr", "pwd", "mfa"));
