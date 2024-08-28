@@ -1,4 +1,5 @@
 using CloudStorage.SPA.V2.Components;
+using CloudStorage.SPA.V2.Models;
 using CloudStorage.SPA.V2.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using MudBlazor.Services;
@@ -13,6 +14,7 @@ namespace CloudStorage.SPA.V2
 
             // Add services to the container.
             builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+            AppSettings appSettings = builder.Configuration.Get<AppSettings>() ?? new AppSettings();
 
             builder.Services.AddAuthentication(x =>
             {
@@ -30,9 +32,10 @@ namespace CloudStorage.SPA.V2
                 config.AddPolicy("Full", policy => policy.RequireClaim("adm", "true"));
             });
 
-            builder.Services.AddTransient<CloudStorageAuthenticationState>();
+            builder.Services.AddTransient<AuthenticationService>();
             builder.Services.AddHttpClient();
-            builder.Services.AddHttpClient<CloudHttpClient>("api");
+            builder.Services.AddHttpClient<CloudHttpClient>("api", config => config.BaseAddress = new Uri(appSettings.BaseApiUrl));
+            builder.Services.AddSingleton<BlobService>();
             builder.Services.AddMudServices();
 
             var app = builder.Build();

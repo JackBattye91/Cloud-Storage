@@ -1,0 +1,29 @@
+﻿@inject IJSRuntime jsRuntime
+
+<MudItem xs="3">
+    <img id="@imageId" />
+    <h3>@BlobDetail.Name</h3>
+    <p>@BlobDetail.Description</p>
+</MudItem>
+
+
+@code {
+    [Parameter]
+    public Models.BlobDetail BlobDetail { get; set; } = default!;
+
+    private string imageId = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        imageId = string.Format("bloblThumbnail_{0}", BlobDetail.Id);
+        _ = GetThumbnailImage();
+    }
+
+    protected async Task GetThumbnailImage()
+    {
+        Stream imgStream = new MemoryStream();
+        await jsRuntime.InvokeVoidAsync("setImageUsingStream", imageId, imgStream);
+    }
+}

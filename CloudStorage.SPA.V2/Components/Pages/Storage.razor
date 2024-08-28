@@ -1,11 +1,15 @@
 ﻿@page "/storage"
+@rendermode InteractiveServer
+@*@attribute [Authorize(Policy = "Password")]*@
+@inject BlobService _blobService;
 
 <PageTitle>Storage</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid>
         <MudItem xs="12">
-            <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" />
+            <InputFile id="fileInput" multiple hidden accept=".png, .jpg, .gif" OnChange="OnChangeInputFile" />
+            <MudIconButton for="fileInput" HtmlTag="label" Icon="@Icons.Material.Filled.Add" Color="Color.Primary" />
             <MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" Color="Color.Primary" />
             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" />
         </MudItem>
@@ -14,16 +18,60 @@
 
 <MudDivider DividerType="DividerType.Middle" />
 <MudContainer MaxWidth="MaxWidth.Large">
-    <MudGrid>
-        <MudItem xs="3">
-            <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" />
-            <MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" Color="Color.Primary" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" />
-        </MudItem>
-    </MudGrid>
+    @if (BlobDetails == null)
+    {
+        <MudProgressCircular Indeterminate="true"/>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (Models.BlobDetail blobDetail in BlobDetails)
+            {
+                <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
+            }
+        </MudGrid>
+    }
+    
 </MudContainer>
 
 @code {
+    private List<Models.BlobDetail>? BlobDetails { get; set; }
+    private bool IsUploading { get; set; } = false;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
 
+        BlobDetails = new List<Models.BlobDetail>()
+        {
+            new Models.BlobDetail() { Id = Guid.NewGuid().ToString(), Name = "Testing", Description="Description" }    
+        };
+    }
+
+    private async Task OnChangeInputFile(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            IsUploading = true;
+            IReadOnlyList<IBrowserFile> uploadedImages = e.GetMultipleFiles(10);
+
+            foreach(IBrowserFile image in uploadedImages)
+            {
+                var imgStream = image.OpenReadStream();
+                Models.BlobDetail blobDetail = new Models.BlobDetail()
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = "Testing 01",
+                    Description = "Testing Description"
+                };
+                await _blobService.UploadStreamAsync(blobDetail, imgStream);
+            }
+        } 
+        catch (Exception ex)
+        {
+
+        }
+
+        IsUploading = false;
+    }
 }
