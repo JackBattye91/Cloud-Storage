@@ -23,11 +23,10 @@ namespace CloudStorage.API.V2.Repos
     public class UserRepo : IUserRepo
     {
         private readonly ILogger<UserRepo> _logger;
-        private readonly IWrapper _noSqlWrapper;
+        private readonly INoSqlDatabaseService _noSqlWrapper;
         private readonly AppSettings _appSettings;
 
-
-        public UserRepo(ILogger<UserRepo> logger, IWrapper noSqlWrapper, IOptions<AppSettings> options)
+        public UserRepo(ILogger<UserRepo> logger, INoSqlDatabaseService noSqlWrapper, IOptions<AppSettings> options)
         {
             _logger = logger;
             _noSqlWrapper = noSqlWrapper;
@@ -36,7 +35,6 @@ namespace CloudStorage.API.V2.Repos
 
         public async Task<User> CreateAsync(User user)
         {
-            user.Id = Guid.NewGuid().ToString();
             IReturnCode<User> createRefreshTokens = await _noSqlWrapper.AddItem<User>(_appSettings.Database.Database, Consts.Database.UserContainer, user);
 
             if (createRefreshTokens.Failed)
@@ -70,7 +68,7 @@ namespace CloudStorage.API.V2.Repos
 
         public async Task<User> GetByUsernameAsync(string username)
         {
-            string query = $"SELECT * FROM c WHERE c.Username = {username}";
+            string query = $"SELECT * FROM c WHERE c.Username = '{username}'";
             var getUserRc = await _noSqlWrapper.GetItems<User>(_appSettings.Database.Database, Consts.Database.UserContainer, query);
 
             if (getUserRc.Success)
@@ -86,7 +84,7 @@ namespace CloudStorage.API.V2.Repos
 
         public async Task<User> GetByEmailAsync(string username)
         {
-            string query = $"SELECT * FROM c WHERE c.Email = {username}";
+            string query = $"SELECT * FROM c WHERE c.Email = '{username}'";
             var getUserRc = await _noSqlWrapper.GetItems<User>(_appSettings.Database.Database, Consts.Database.UserContainer, query);
 
             if (getUserRc.Success)

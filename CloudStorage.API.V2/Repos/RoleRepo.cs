@@ -1,5 +1,6 @@
 ﻿using CloudStorage.API.V2.Models;
 using JB.Common;
+using JB.NoSqlDatabase;
 using Microsoft.Extensions.Options;
 
 namespace CloudStorage.API.V2.Repos
@@ -16,10 +17,10 @@ namespace CloudStorage.API.V2.Repos
     public class RoleRepo : IRoleRepo
     {
         private readonly ILogger<RoleRepo> _logger;
-        private readonly JB.NoSqlDatabase.IWrapper _noSql;
+        private readonly INoSqlDatabaseService _noSql;
         private readonly AppSettings _appSettings;
 
-        public RoleRepo(ILogger<RoleRepo> logger, JB.NoSqlDatabase.IWrapper noSql, IOptions<AppSettings> appSettings)
+        public RoleRepo(ILogger<RoleRepo> logger, INoSqlDatabaseService noSql, IOptions<AppSettings> appSettings)
         {
             _logger = logger;
             _noSql = noSql;

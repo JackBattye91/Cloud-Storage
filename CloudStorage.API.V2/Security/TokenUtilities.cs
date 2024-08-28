@@ -106,15 +106,19 @@ namespace CloudStorage.API.V2.Security
         }
         public static async Task<bool> ValidateTokenWithoutDate(HttpRequest pRequest, AppSettings appSettings)
         {
-            string? bearerToken = pRequest.Headers.Authorization.FirstOrDefault();
+            string? bearerToken = pRequest.Headers.Authorization.First();
 
-            if (bearerToken == null)
+            if (string.IsNullOrEmpty(bearerToken))
             {
                 return false;
             }
 
-            JwtSecurityTokenHandler hander = new JwtSecurityTokenHandler();
-            var validation = await hander.ValidateTokenAsync(bearerToken, ValidationParametersWithoutDate(appSettings));
+            bearerToken = bearerToken.Substring(8, bearerToken.Length - (8 + 3));
+
+            JwtSecurityTokenHandler handler = new JwtSecurityTokenHandler();
+            JwtSecurityToken token = handler.ReadJwtToken(bearerToken);
+
+            var validation = await handler.ValidateTokenAsync(token, ValidationParametersWithoutDate(appSettings));
 
             return validation.IsValid;
         }

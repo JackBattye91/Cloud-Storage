@@ -10,6 +10,7 @@ namespace CloudStorage.API.V2.Models {
         public string UserId { get; set; } = string.Empty;
         public string ContainerName { get; set; } = string.Empty;
         public string BlobName { get; set; } = string.Empty;
+        public string ThumbnailName { get; set; } = string.Empty;
         public string Extension { get; set; } = string.Empty;
     }
 }

@@ -51,7 +51,7 @@ namespace CloudStorage.API.V2.Services
 
         public Task<User> UpdateAsync(User user)
         {
-            throw new NotImplementedException();
+            return _userRepo.UpdateAsync(user);
         }
 
 

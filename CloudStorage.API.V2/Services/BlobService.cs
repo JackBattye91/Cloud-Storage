@@ -1,9 +1,8 @@
-﻿
-
-using System.IO;
+﻿using System.IO;
 
 namespace CloudStorage.API.V2.Services
 {
+    
     public interface IBlobService
     {
         Task<Stream> GetBlobStreamAsync(string container, string name);
@@ -66,6 +65,5 @@ namespace CloudStorage.API.V2.Services
 
             throw new Exception("Unable to get blob data");
         }
-
     }
 }

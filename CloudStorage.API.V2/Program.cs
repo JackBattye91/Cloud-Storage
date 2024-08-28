@@ -43,25 +43,27 @@ namespace CloudStorage.API.V2
 
             builder.Services.AddAuthorization(config =>
             { 
-                config.AddPolicy("Password", policy => policy.RequireClaim("amr", "pwd", "mfa"));
-                config.AddPolicy("MFA", policy => policy.RequireClaim("amr", "mfa"));
-                config.AddPolicy("Full", policy => policy.RequireClaim("adm", "true"));
+                config.AddPolicy(Consts.Policies.PASSWORD, policy => policy.RequireClaim("amr", "pwd", "mfa"));
+                config.AddPolicy(Consts.Policies.MFA, policy => policy.RequireClaim("amr", "mfa"));
+                config.AddPolicy(Consts.Policies.ADMIN, policy => policy.RequireClaim("admin", "true"));
             });
 
             builder.Services.AddIdentity<User, Role>(config => { 
                 config.User.RequireUniqueEmail = true;
             }).AddDefaultTokenProviders();
 
+
+            builder.Services.AddNoSqlDatabaseService(appSettings.Database.ConnectionString);
+            builder.Services.AddEmailService();
+            builder.Services.AddBlobService(appSettings.Blob.ConnectionString);
+
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserRepo, UserRepo>();
             builder.Services.AddSingleton<IRoleRepo, RoleRepo>();
-            builder.Services.AddBlobService(appSettings.Blob.ConnectionString);
-            builder.Services.AddEmailService();
-            builder.Services.AddNoSqlDatabaseService(appSettings.Database.ConnectionString);
-
+            
             builder.Services.AddTransient<IUserStore<User>, UserStore>();
             builder.Services.AddTransient<IRoleStore<Role>, RoleStore>();
-
+            
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
