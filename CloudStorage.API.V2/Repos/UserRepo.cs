@@ -52,7 +52,7 @@ namespace CloudStorage.API.V2.Repos
 
         public async Task<User> GetByIdAsync(string id)
         {
-            string query = $"SELECT * FROM c WHERE c.id = {id}";
+            string query = $"SELECT * FROM c WHERE c.id = '{id}'";
             var getUserRc = await _noSqlWrapper.GetItems<User>(_appSettings.Database.Database, Consts.Database.UserContainer, query);
 
             if (getUserRc.Success)
@@ -62,8 +62,7 @@ namespace CloudStorage.API.V2.Repos
                     return getUserRc.Data[0];
                 }
             }
-
-            throw new NotFoundException();
+            return new User();
         }
 
         public async Task<User> GetByUsernameAsync(string username)
@@ -79,12 +78,12 @@ namespace CloudStorage.API.V2.Repos
                 }
             }
 
-            throw new NotFoundException();
+            return new User();
         }
 
-        public async Task<User> GetByEmailAsync(string username)
+        public async Task<User> GetByEmailAsync(string email)
         {
-            string query = $"SELECT * FROM c WHERE c.Email = '{username}'";
+            string query = $"SELECT * FROM c WHERE c.Email = '{email}'";
             var getUserRc = await _noSqlWrapper.GetItems<User>(_appSettings.Database.Database, Consts.Database.UserContainer, query);
 
             if (getUserRc.Success)
@@ -95,7 +94,7 @@ namespace CloudStorage.API.V2.Repos
                 }
             }
 
-            throw new NotFoundException();
+            return new User();
         }
 
         public async Task<User> UpdateAsync(User user)

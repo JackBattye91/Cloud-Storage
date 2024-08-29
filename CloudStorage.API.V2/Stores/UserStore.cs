@@ -39,7 +39,7 @@ namespace CloudStorage.API.V2.Stores
 
         public async Task<User?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
         {
-            return await _userService.GetByIdAsync(normalizedUserName);
+            return await _userService.GetByUsernameAsync(normalizedUserName);
         }
 
         public async Task<string?> GetNormalizedUserNameAsync(User user, CancellationToken cancellationToken)

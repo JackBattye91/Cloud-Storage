@@ -8,7 +8,14 @@ namespace CloudStorage.API.V2
     {
         public static UserDTO? Convert(User pUser)
         {
-            return Convert<User, UserDTO>(pUser);
+            UserDTO? user = Convert<User, UserDTO>(pUser);
+
+            if (user?.Password != null)
+            {
+                user!.Password = null;
+            }
+
+            return user;
         }
 
         public static Tout? Convert<Tin, Tout>(Tin pTin)

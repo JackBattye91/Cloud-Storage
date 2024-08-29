@@ -44,7 +44,7 @@ namespace CloudStorage.API.V2.Security
             };
         }
 
-        public static string CreateToken(User user, AppSettings appSettings, int sessionTimeoutMinutes = 60)
+        public static string CreateToken(User user, AppSettings appSettings, int sessionTimeoutMinutes = 60, bool mfa = false)
         {
             DateTime now = DateTime.UtcNow;
             byte[] encryptionKey = Encoding.UTF8.GetBytes(appSettings.Jwt.Key);
@@ -59,6 +59,7 @@ namespace CloudStorage.API.V2.Security
                 new Claim(JwtRegisteredClaimNames.GivenName, user.Forenames),
                 new Claim(JwtRegisteredClaimNames.FamilyName, user.Surname),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim("amr", mfa ? "mfa" : "pwd")
             };
 
             JwtSecurityToken jwtToken = new JwtSecurityToken(

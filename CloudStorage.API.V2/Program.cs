@@ -30,6 +30,11 @@ namespace CloudStorage.API.V2
             builder.Services.Configure<AppSettings>(config);
             AppSettings appSettings = config.Get<AppSettings>() ?? new AppSettings();
 
+            builder.Services.ConfigureHttpJsonOptions(config => {
+                config.SerializerOptions.AllowTrailingCommas = true;
+                config.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault;
+            });
+
             builder.Services.AddAuthentication(x =>
             {
                 x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -37,7 +42,7 @@ namespace CloudStorage.API.V2
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(o => {
                 o.RequireHttpsMetadata = false;
-                o.SaveToken = true;
+                o.SaveToken = false;
                 o.TokenValidationParameters = TokenUtilities.ValidationParameters(appSettings);
             });
 
@@ -52,9 +57,8 @@ namespace CloudStorage.API.V2
                 config.User.RequireUniqueEmail = true;
             }).AddDefaultTokenProviders();
 
-
             builder.Services.AddNoSqlDatabaseService(appSettings.Database.ConnectionString);
-            builder.Services.AddEmailService();
+            //builder.Services.AddEmailService();
             builder.Services.AddBlobService(appSettings.Blob.ConnectionString);
 
             builder.Services.AddSingleton<IUserService, UserService>();

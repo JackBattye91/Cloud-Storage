@@ -28,16 +28,15 @@ namespace CloudStorage.API.V2.Controllers
         }
 
         [HttpPost]
-        //[Authorize(Policy = Consts.Policies.ADMIN)]
+        [Authorize(Policy = Consts.Policies.ADMIN)]
         public async Task<IActionResult> CreateAccount(UserDTO pUser)
         {
             try
             {
-                /*
                 if (!SecurityUtilities.ValidatePassword(pUser.Password))
                 {
                     return BadRequest();
-                }*/
+                }
                 User? user = Converter.Convert<UserDTO, User>(pUser);
 
                 if (user == null)
