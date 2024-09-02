@@ -48,7 +48,7 @@
         };
     }
 
-    private async Task OnChangeInputFile(InputFileChangeEventArgs e)
+    private async Task<Models.BlobDetail?> OnChangeInputFile(InputFileChangeEventArgs e)
     {
         try
         {
@@ -62,9 +62,16 @@
                 {
                     Id = Guid.NewGuid().ToString(),
                     Name = "Testing 01",
-                    Description = "Testing Description"
+                    Description = "Testing Description",
+                    Extension = "images/png"
                 };
-                await _blobService.UploadStreamAsync(blobDetail, imgStream);
+
+                Models.BlobDetail? uploadedBlob = await _blobService.UploadStreamAsync(blobDetail, imgStream);
+
+                if (uploadedBlob != null)
+                {
+                    return uploadedBlob;
+                }
             }
         } 
         catch (Exception ex)
@@ -73,5 +80,6 @@
         }
 
         IsUploading = false;
+        return null;
     }
 }

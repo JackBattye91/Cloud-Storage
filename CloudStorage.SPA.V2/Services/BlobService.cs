@@ -1,5 +1,6 @@
 ﻿using CloudStorage.SPA.V2.Models;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CloudStorage.SPA.V2.Services
 {
@@ -14,47 +15,47 @@ namespace CloudStorage.SPA.V2.Services
             _logger = logger;
         }
 
-        public async Task<BlobDetail?> UploadStreamAsync(BlobDetail blobDetail, Stream dataStream)
+        public async Task<BlobDetail?> UploadStreamAsync(BlobDetail blobDetail, Stream imageStream)
         {
             try
             {
-                using (Stream uploadStream = new MemoryStream())
-                using (StreamWriter writer = new StreamWriter(uploadStream))
+                string details = JsonSerializer.Serialize(blobDetail);
+
+                Stream dataStream = new MemoryStream();
+                dataStream.Write(BitConverter.GetBytes(details.Length));
+                dataStream.Write(System.Text.Encoding.UTF8.GetBytes(details));
+
+                byte[] buffer = new byte[1024];
+                int bytesRead = 0;
+                do
                 {
-                    await WriteBlobDetails(uploadStream, blobDetail);
+                    bytesRead = await imageStream.ReadAsync(buffer, 0, 1024);
+                    dataStream.Write(buffer, 0, bytesRead);
+                } while (bytesRead > 0);
 
-                    char[] buffer = new char[1024];
-                    using (StreamReader dataReader = new StreamReader(dataStream))
+                dataStream.Seek(0, SeekOrigin.Begin);
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "api/Blob/stream");
+                requestMessage.Content = new StreamContent(dataStream);
+                HttpClient client = _clientFactory.CreateClient("api");
+                HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+                if (responseMessage.IsSuccessStatusCode)
+                {
+                    string content = await responseMessage.Content.ReadAsStringAsync();
+                    BlobDetail? newBlobDetail = JsonSerializer.Deserialize<BlobDetail>(content, new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+                    if (newBlobDetail != null)
                     {
-                        int bytesRead = await dataReader.ReadAsync(buffer);
-                        await writer.WriteAsync(buffer, 0, bytesRead);
-                    }
-
-                    uploadStream.Position = 0;
-
-                    HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "Blob/stream");
-                    requestMessage.Content = new StreamContent(uploadStream);
-                    HttpClient client = _clientFactory.CreateClient("api");
-                    HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
-
-                    if (responseMessage.IsSuccessStatusCode)
-                    {
-                        string content = await responseMessage.Content.ReadAsStringAsync();
-                        BlobDetail? newBlobDetail = JsonSerializer.Deserialize<BlobDetail>(content);
-
-                        if (newBlobDetail != null)
-                        {
-                            return newBlobDetail;
-                        }
-                        else
-                        {
-                            throw new Exception("Unable to deserialize BlobDetail");
-                        }
+                        return newBlobDetail;
                     }
                     else
                     {
-                        throw new Exception($"Server returned error code: {(int)responseMessage.StatusCode}");
+                        throw new Exception("Unable to deserialize BlobDetail");
                     }
+                }
+                else
+                {
+                    throw new Exception($"Server returned error code: {(int)responseMessage.StatusCode} - {await requestMessage.Content.ReadAsStringAsync()}");
                 }
             }
             catch (Exception ex)

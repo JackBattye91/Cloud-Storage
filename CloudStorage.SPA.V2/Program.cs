@@ -32,9 +32,10 @@ namespace CloudStorage.SPA.V2
                 config.AddPolicy("Full", policy => policy.RequireClaim("adm", "true"));
             });
 
+            builder.Services.AddTransient<CloudHttpClient>();
             builder.Services.AddTransient<AuthenticationService>();
             builder.Services.AddHttpClient();
-            builder.Services.AddHttpClient<CloudHttpClient>("api", config => config.BaseAddress = new Uri(appSettings.BaseApiUrl));
+            builder.Services.AddHttpClient("api", config => config.BaseAddress = new Uri(appSettings.BaseApiUrl)).AddHttpMessageHandler<CloudHttpClient>();
             builder.Services.AddSingleton<BlobService>();
             builder.Services.AddMudServices();
 

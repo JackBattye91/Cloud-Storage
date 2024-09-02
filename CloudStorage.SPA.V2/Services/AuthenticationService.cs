@@ -54,7 +54,7 @@ namespace CloudStorage.SPA.V2.Services
 
         public void Logout()
         {
-            CurrentToken = null; 
+            CurrentToken = null;
         }
 
         public bool IsAuthenticated() {
@@ -68,6 +68,11 @@ namespace CloudStorage.SPA.V2.Services
                 _logger.LogError(ex, "GetState failed");
                 return false;
             }
+        }
+
+        public string? GetToken()
+        {
+            return CurrentToken?.Token;
         }
 
         private static bool IsValid(AccessToken? accessToken)
