@@ -1,0 +1,64 @@
+﻿<h3>BlobUploadView</h3>
+
+<MudContainer>
+    <MudGrid>
+        <MudItem>
+            <MudText Typo="Typo.h2">Upload</MudText>
+        </MudItem>
+
+        <MudItem>
+            @if (BrowserFiles != null)
+            {
+                <MudGrid>
+                    @foreach (var item in BrowserFiles)
+                    {
+                        <MudItem>
+                            <MudImage />
+                            <MudText>@item.Name</MudText>
+                            <MudText>@GetFileSize(item)</MudText>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudProgressCircular Indeterminate="true"/>
+            }
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private IList<IBrowserFile>? BrowserFiles { get; set; }
+
+    private static string GetFileSize(IBrowserFile file)
+    {
+        long size = file.Size;
+        string prefix = "b";
+        int index = 0;
+
+        if (size > 1000)
+        {
+            size /= 1000;
+            index++;
+        }
+
+        switch (index)
+        {
+            case 1:
+                prefix = "kb";
+                break;
+            case 2:
+                prefix = "mb";
+                break;
+            case 3:
+                prefix = "gb";
+                break;
+            case 4:
+                prefix = "tb";
+                break;
+        }
+
+        return string.Format("{0}{1}", size, prefix);
+}
+}
