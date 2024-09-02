@@ -31,6 +31,7 @@ namespace CloudStorage.API.V2
             AppSettings appSettings = config.Get<AppSettings>() ?? new AppSettings();
 
             builder.Services.ConfigureHttpJsonOptions(config => {
+                config.SerializerOptions.PropertyNameCaseInsensitive = true;
                 config.SerializerOptions.AllowTrailingCommas = true;
                 config.SerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault;
             });
@@ -64,6 +65,7 @@ namespace CloudStorage.API.V2
 
             // LOCAL
             builder.Services.AddScoped<IBlobService, BlobService>();
+            builder.Services.AddScoped<IBlobDetailService, BlobDetailService>();
 
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserRepo, UserRepo>();

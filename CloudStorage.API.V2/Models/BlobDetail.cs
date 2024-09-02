@@ -12,5 +12,6 @@ namespace CloudStorage.API.V2.Models {
         public string BlobName { get; set; } = string.Empty;
         public string ThumbnailName { get; set; } = string.Empty;
         public string Extension { get; set; } = string.Empty;
+        public bool Deleted { get; set; } = false;
     }
 }

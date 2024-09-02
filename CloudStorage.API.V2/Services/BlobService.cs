@@ -9,6 +9,7 @@ namespace CloudStorage.API.V2.Services
         Task<byte[]> GetBlobDataAsync(string container, string name);
         Task UploadBlobAsync(string container, string name, Stream stream);
         Task UploadBlobAsync(string container, string name, byte[] data);
+        Task DeleteBlobAsync(string container, string name);
     }
 
     public class BlobService : IBlobService
@@ -64,6 +65,11 @@ namespace CloudStorage.API.V2.Services
             }
 
             throw new Exception("Unable to get blob data");
+        }
+
+        public async Task DeleteBlobAsync(string container, string name)
+        {
+            
         }
     }
 }
