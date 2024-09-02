@@ -26,7 +26,7 @@ namespace CloudStorage.API.V2.Controllers
     {
         private readonly ILogger<BlobController> _logger;
         private readonly IBlobService _blobService;
-        private readonly IBlobDetailService _blobDetailService
+        private readonly IBlobDetailService _blobDetailService;
         private readonly INoSqlDatabaseService _noSqlDatabase;
         private readonly IUserService _userService;
         private readonly AppSettings _appSettings;
@@ -92,7 +92,7 @@ namespace CloudStorage.API.V2.Controllers
 
                 BlobDetail blobDetail = await _blobDetailService.Get(id);
                 Stream dataStream = await _blobService.GetBlobStreamAsync(blobDetail.ContainerName, blobDetail.BlobName);
-                Response.ContentType = blobDetail.Extension;
+                Response.ContentType = blobDetail.MimeType;
                 return Ok(dataStream);
            }
             catch (Exception ex)
@@ -119,7 +119,7 @@ namespace CloudStorage.API.V2.Controllers
 
                 BlobDetail blobDetail = await _blobDetailService.Get(id);
                 Stream dataStream = await _blobService.GetBlobStreamAsync(Consts.Blob.THUMBNAIL_CONTAINER, blobDetail.ThumbnailName);
-                Response.ContentType = blobDetail.Extension;
+                Response.ContentType = blobDetail.MimeType;
                 return Ok(dataStream);
             }
             catch (Exception ex)
@@ -150,12 +150,10 @@ namespace CloudStorage.API.V2.Controllers
                     throw new Exception("Unable to get blob details from stream");
                 }
 
-                blobDetail.ContainerName = "images";
                 blobDetail.Id = Guid.NewGuid().ToString();
+                blobDetail.ContainerName = "images";
                 blobDetail.BlobName = string.Format("{0}.{1}", Guid.NewGuid(), fileExtension);
                 blobDetail.ThumbnailName = string.Format("{0}.{1}", Guid.NewGuid(), fileExtension);
-                blobDetail.UserId = userId;
-                blobDetail.Extension = string.Format("image/{0}", fileExtension);
 
                 blobDetail = await _blobDetailService.Create(blobDetail);
 

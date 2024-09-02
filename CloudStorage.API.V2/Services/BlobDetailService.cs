@@ -14,10 +14,10 @@ namespace CloudStorage.API.V2.Services
 
     public class BlobDetailService : IBlobDetailService
     {
-        private readonly JB.NoSqlDatabase.IWrapper _noSqlWrapper;
+        private readonly JB.NoSqlDatabase.INoSqlDatabaseService _noSqlWrapper;
         private readonly AppSettings _appSettings;
 
-        public BlobDetailService(JB.NoSqlDatabase.IWrapper noSqlWrapper, IOptions<AppSettings> appSettings)
+        public BlobDetailService(JB.NoSqlDatabase.INoSqlDatabaseService noSqlWrapper, IOptions<AppSettings> appSettings)
         {
             _noSqlWrapper = noSqlWrapper;
             _appSettings = appSettings.Value;
