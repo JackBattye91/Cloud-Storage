@@ -2,6 +2,6 @@
 {
     public class Blob
     {
-        public const string THUMBNAIL_CONTAINER = "Thumbnails";
+        public const string THUMBNAIL_CONTAINER = "thumbnails";
     }
 }

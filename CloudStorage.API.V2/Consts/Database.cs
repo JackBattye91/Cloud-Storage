@@ -5,7 +5,7 @@
         public const string UserContainer = "Users";
         public const string RoleContainer = "Roles";
         public const string RefreshTokenContainer = "RefreshToken";
-        public const string BlobDetailContainer = "BlobDetailContainer";
+        public const string BlobDetailContainer = "BlobDetails";
         public const string ACTIVATION_KEY = "ActivationKeys";
     }
 }

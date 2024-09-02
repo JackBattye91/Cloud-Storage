@@ -90,17 +90,7 @@ namespace CloudStorage.API.V2.Controllers
         {
             try
             {
-                string? authHeader = Request.Headers.Authorization.FirstOrDefault();
-
-                if (authHeader == null) {
-                    return Unauthorized();
-                }
-                
-                JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-                JwtSecurityToken token = tokenHandler.ReadJwtToken(authHeader);
-
-                Claim? subjectClaim = token.Claims.Where(x => x.Subject != null).FirstOrDefault();
-                string? userId = subjectClaim?.Value;
+                string? userId = TokenUtilities.GetSubjectId(Request);
 
                 if (userId == null) {
                     return Unauthorized();
@@ -129,6 +119,7 @@ namespace CloudStorage.API.V2.Controllers
                 }
 
                 Stream dataStream = await _blobService.GetBlobStreamAsync(blobDetail.ContainerName, blobDetail.BlobName);
+                Response.ContentType = blobDetail.Extension;
                 return Ok(dataStream);
            }
             catch (Exception ex)
@@ -171,13 +162,13 @@ namespace CloudStorage.API.V2.Controllers
                 }
 
                 BlobDetail? blobDetail = getBlobDetailsRc.Data?.Count > 0 ? getBlobDetailsRc.Data[0] : null;
-
                 if (blobDetail == null)
                 {
                     throw new Exception("Blob not found");
                 }
 
-                Stream dataStream = await _blobService.GetBlobStreamAsync(Consts.Blob.THUMBNAIL_CONTAINER, blobDetail.BlobName);
+                Stream dataStream = await _blobService.GetBlobStreamAsync(Consts.Blob.THUMBNAIL_CONTAINER, blobDetail.ThumbnailName);
+                Response.ContentType = blobDetail.Extension;
                 return Ok(dataStream);
             }
             catch (Exception ex)
