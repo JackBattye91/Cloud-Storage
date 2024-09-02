@@ -57,9 +57,13 @@ namespace CloudStorage.API.V2
                 config.User.RequireUniqueEmail = true;
             }).AddDefaultTokenProviders();
 
+            // JB
             builder.Services.AddNoSqlDatabaseService(appSettings.Database.ConnectionString);
-            //builder.Services.AddEmailService();
+            builder.Services.AddEmailService(appSettings.Email.ApiKey);
             builder.Services.AddBlobService(appSettings.Blob.ConnectionString);
+
+            // LOCAL
+            builder.Services.AddScoped<IBlobService, BlobService>();
 
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserRepo, UserRepo>();

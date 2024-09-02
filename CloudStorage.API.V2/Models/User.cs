@@ -15,5 +15,6 @@ namespace CloudStorage.API.V2.Models
         public DateTime Created { get; set; }
         public DateTime Updated { get; set; }
         public DateTime? LastLogin { get; set; }
+        public bool Activated { get; set; } = false;
     }
 }

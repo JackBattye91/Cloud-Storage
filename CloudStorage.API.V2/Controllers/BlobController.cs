@@ -12,24 +12,25 @@ using Microsoft.Extensions.Options;
 using CloudStorage.API.V2.Models.DTOs;
 using System.Data;
 using JB.NoSqlDatabase;
+using CloudStorage.API.V2.Security;
 
 namespace CloudStorage.API.V2.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "Password")]
+    [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class BlobController : CloudControllerBase
     {
         private readonly ILogger<BlobController> _logger;
         private readonly IBlobService _blobService;
         private readonly INoSqlDatabaseService _noSqlDatabase;
-        private readonly UserService _userService;
+        private readonly IUserService _userService;
         private readonly AppSettings _appSettings;
 
         public BlobController(ILogger<BlobController> logger,
             IBlobService blobService,
             INoSqlDatabaseService noSqlDatabase, 
-            UserService userService,
+            IUserService userService,
             IOptions<AppSettings> appSettings)
         {
             _logger = logger;
@@ -45,23 +46,11 @@ namespace CloudStorage.API.V2.Controllers
         {
             try
             {
-                string? authHeader = Request.Headers.Authorization.FirstOrDefault();
-
-                if (authHeader == null) {
-                    return Unauthorized();
-                }
-                
-                JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-                JwtSecurityToken token = tokenHandler.ReadJwtToken(authHeader);
-
-                Claim? subjectClaim = token.Claims.Where(x => x.Subject != null).FirstOrDefault();
-                string? userId = subjectClaim?.Value;
+                string? userId = TokenUtilities.GetSubjectId(Request);
 
                 if (userId == null) {
                     return Unauthorized();
                 }
-
-                User user = await _userService.GetByIdAsync(userId);
 
                 string query = $"SELECT * FROM c WHERE c.UserId = '{userId}'";
                 IReturnCode<IList<Models.BlobDetail>> getBlobDetailsRc = await _noSqlDatabase.GetItems<Models.BlobDetail>(_appSettings.Database.Database, Consts.Database.BlobDetailContainer, query);
@@ -155,18 +144,7 @@ namespace CloudStorage.API.V2.Controllers
         {
             try
             {
-                string? authHeader = Request.Headers.Authorization.FirstOrDefault();
-
-                if (authHeader == null)
-                {
-                    return Unauthorized();
-                }
-
-                JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-                JwtSecurityToken token = tokenHandler.ReadJwtToken(authHeader);
-
-                Claim? subjectClaim = token.Claims.Where(x => x.Subject != null).FirstOrDefault();
-                string? userId = subjectClaim?.Value;
+                string? userId = TokenUtilities.GetSubjectId(Request);
 
                 if (userId == null)
                 {
@@ -215,20 +193,7 @@ namespace CloudStorage.API.V2.Controllers
         {
             try
             {
-                /*
-                string? authHeader = Request.Headers.Authorization.FirstOrDefault();
-
-                if (authHeader == null) {
-                    return Unauthorized();
-                }
-                
-                JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-                JwtSecurityToken token = tokenHandler.ReadJwtToken(authHeader);
-
-                Claim? subjectClaim = token.Claims.Where(x => x.Subject != null).FirstOrDefault();
-                string? userId = subjectClaim?.Value;
-                */
-                string? userId = GetUserIdAsync(); 
+                string? userId = TokenUtilities.GetSubjectId(Request); 
 
                 if (userId == null) {
                     return Unauthorized();

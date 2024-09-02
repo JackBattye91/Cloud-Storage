@@ -53,7 +53,7 @@ namespace CloudStorage.API.V2.Security
             IList<Claim> claims = new List<Claim>()
             {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, now.ToString("yyyy-MM-ddThh:mm:ssK")),
+                //new Claim(JwtRegisteredClaimNames.Iat, now.),
 
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim(JwtRegisteredClaimNames.GivenName, user.Forenames),
@@ -76,7 +76,7 @@ namespace CloudStorage.API.V2.Security
             return encodedJwt;
         }
 
-        public static string GetSubjectEmail(HttpRequest pRequest)
+        public static string? GetSubjectEmail(HttpRequest pRequest)
         {
             string? bearerToken = pRequest.Headers.Authorization.FirstOrDefault();
             if (bearerToken == null)
@@ -89,8 +89,25 @@ namespace CloudStorage.API.V2.Security
             JwtSecurityToken securityToken = hander.ReadJwtToken(bearerToken);
             string? email = securityToken.Claims.Where(x => x.Type == JwtRegisteredClaimNames.Email).FirstOrDefault()?.Value;
 
-            return email ?? string.Empty;
+            return email;
         }
+        public static string? GetSubjectId(HttpRequest pRequest)
+        {
+            string? bearerToken = pRequest.Headers.Authorization.FirstOrDefault();
+            if (bearerToken == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+
+            JwtSecurityTokenHandler hander = new JwtSecurityTokenHandler();
+
+            string token = bearerToken.Substring(7);
+            JwtSecurityToken securityToken = hander.ReadJwtToken(token);
+            string? subId = securityToken.Claims.Where(x => x.Type == JwtRegisteredClaimNames.Sub).FirstOrDefault()?.Value;
+
+            return subId;
+        }
+
 
         public static async Task<bool> ValidateToken(HttpRequest pRequest, AppSettings appSettings)
         {

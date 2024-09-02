@@ -6,6 +6,7 @@ namespace CloudStorage.API.V2.Services
     public interface IUserService
     {
         Task<User> CreateAsync(User user);
+        Task<User> ActivteAccountAsync(string activationKey);
         Task<User> GetByIdAsync(string id);
         Task<User> GetByUsernameAsync(string username);
         Task<User> GetByEmailAsync(string email);
@@ -27,6 +28,30 @@ namespace CloudStorage.API.V2.Services
         public Task<User> CreateAsync(User user)
         {
             return _userRepo.CreateAsync(user);
+        }
+
+        public async Task<User> ActivteAccountAsync(string activationKey)
+        {
+            AccountActivationKey? accountActivationKey = await _userRepo.GetActivationKeyAsync(activationKey);
+
+            if (accountActivationKey == null)
+            {
+                throw new Exception("Unable to find activation key");
+            }
+
+            if (DateTime.UtcNow < accountActivationKey.Expires) {
+                User user = await _userRepo.GetByIdAsync(accountActivationKey.UserId);
+                user.Activated = true;
+                await UpdateAsync(user);
+
+                return user;
+            }
+            else
+            {
+                throw new Exception("Account Activation Key has expired");
+            }
+
+            throw new Exception("Unable to activate account");
         }
 
         public Task DeleteAsync(User user)

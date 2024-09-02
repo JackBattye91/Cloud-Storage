@@ -6,18 +6,6 @@ namespace CloudStorage.API.V2
 {
     public class Converter
     {
-        public static UserDTO? Convert(User pUser)
-        {
-            UserDTO? user = Convert<User, UserDTO>(pUser);
-
-            if (user?.Password != null)
-            {
-                user!.Password = null;
-            }
-
-            return user;
-        }
-
         public static Tout? Convert<Tin, Tout>(Tin pTin)
         {
             Tout? output = (Tout?)Activator.CreateInstance(typeof(Tout));

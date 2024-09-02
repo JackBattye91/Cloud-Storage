@@ -19,12 +19,17 @@
         public string ConnectionString { get; set; } = string.Empty;
     }
 
+    public class EmailSettings
+    {
+        public string ApiKey { get; set; } = string.Empty;
+        public string Sender { get; set; } = string.Empty;
+    }
+
     public class AppSettings
     {
         public JwtSettings Jwt { get; set; } = new JwtSettings();
-
         public DatabaseSettings Database { get; set; } = new DatabaseSettings();
-
         public BlobSettings Blob { get; set; } = new BlobSettings();
+        public EmailSettings Email { get; set; } = new EmailSettings();
     }
 }

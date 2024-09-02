@@ -13,6 +13,7 @@ namespace CloudStorage.API.V2.Repos
         Task<User> GetByIdAsync(string id);
         Task<User> GetByUsernameAsync(string username);
         Task<User> GetByEmailAsync(string email);
+        Task<AccountActivationKey?> GetActivationKeyAsync(string activationKey);
         Task<User> UpdateAsync(User user);
         Task DeleteAsync(User user);
 
@@ -43,6 +44,26 @@ namespace CloudStorage.API.V2.Repos
             }
 
             return user;
+        }
+
+        public async Task<AccountActivationKey?> GetActivationKeyAsync(string activationKey)
+        {
+            string query = $"SELECT * FROM c WHERE c.ActivationKey = '{activationKey}'";
+            IReturnCode<IList<AccountActivationKey>> getActivationKeysRc = await _noSqlWrapper.GetItems<AccountActivationKey>(_appSettings.Database.Database, Consts.Database.ACTIVATION_KEY, query);
+
+            if (getActivationKeysRc.Success)
+            {
+                if (getActivationKeysRc.Data?.Count > 0)
+                {
+                    return getActivationKeysRc.Data[0];
+                }
+            }
+            if (getActivationKeysRc.Failed)
+            {
+                throw new Exception("Unable to get activation key");
+            }
+
+            return null;
         }
 
         public async Task DeleteAsync(User user)

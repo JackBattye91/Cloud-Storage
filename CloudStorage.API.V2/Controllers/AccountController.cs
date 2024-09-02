@@ -16,20 +16,22 @@ namespace CloudStorage.API.V2.Controllers
     {
         private readonly ILogger<AccountController> _logger;
         private readonly IUserService _userService;
+        private readonly IEmailService _emailServoce;
         private readonly AppSettings _appSettings;
         private readonly SignInManager<User> _signInManager;
 
-        public AccountController(ILogger<AccountController> logger, IUserService userService, IOptions<AppSettings> appSettings, SignInManager<User> signInManager)
+        public AccountController(ILogger<AccountController> logger, IUserService userService, IEmailService emailService, IOptions<AppSettings> appSettings, SignInManager<User> signInManager)
         {
             _logger = logger;
             _userService = userService;
+            _emailServoce = emailService;
             _appSettings = appSettings.Value;
             _signInManager = signInManager;
         }
 
         [HttpPost]
-        [Authorize(Policy = Consts.Policies.ADMIN)]
-        public async Task<IActionResult> CreateAccount(UserDTO pUser)
+        [AllowAnonymous]
+        public async Task<IActionResult> CreateAccount(CreateUserDTO pUser)
         {
             try
             {
@@ -37,7 +39,7 @@ namespace CloudStorage.API.V2.Controllers
                 {
                     return BadRequest();
                 }
-                User? user = Converter.Convert<UserDTO, User>(pUser);
+                User? user = Converter.Convert<CreateUserDTO, User>(pUser);
 
                 if (user == null)
                 {
@@ -48,11 +50,33 @@ namespace CloudStorage.API.V2.Controllers
                 user.Password = _signInManager.UserManager.PasswordHasher.HashPassword(user, pUser.Password);
                 user.Created = DateTime.UtcNow;
                 user.Updated = DateTime.UtcNow;
+                user.Activated = false;
                 user = await _userService.CreateAsync(user);
-                pUser = Converter.Convert(user) ?? new UserDTO();
-                pUser.Password = null;
 
+                string key = "";
+                await _emailServoce.SendAccountActivationKeyAsync(user, key);
+
+
+                UserDTO userDto = Converter.Convert<User, UserDTO>(user) ?? new UserDTO();
                 return Ok(pUser);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Create Account Failed");
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet]
+        [Route("activate/{activationKey}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ActivateAccount(string activationKey)
+        {
+            try
+            {
+                User user = await _userService.ActivteAccountAsync(activationKey);
+
+                return Ok(user);
             }
             catch (Exception ex)
             {
@@ -89,6 +113,11 @@ namespace CloudStorage.API.V2.Controllers
                     return BadRequest();
                 }
 
+                if (!user.Activated)
+                {
+                    return BadRequest();
+                }
+
                 Microsoft.AspNetCore.Identity.SignInResult loginResult = await _signInManager.PasswordSignInAsync(user, pLoginDto.Password!, true, false);
                 if (!loginResult.Succeeded)
                 {
@@ -100,7 +129,7 @@ namespace CloudStorage.API.V2.Controllers
                 TokenDTO token = new TokenDTO();
                 token.Expires = DateTime.UtcNow.AddMinutes(60);
                 token.Token = TokenUtilities.CreateToken(user, _appSettings, 60);
-                token.User = Converter.Convert(user);
+                token.User = Converter.Convert<User, UserDTO>(user);
                 token.RefreshToken = refreshToken.Id;
 
                 user.LastLogin = DateTime.UtcNow;
@@ -148,7 +177,7 @@ namespace CloudStorage.API.V2.Controllers
                 TokenDTO token = new TokenDTO();
                 token.Expires = DateTime.UtcNow.AddMinutes(60);
                 token.Token = TokenUtilities.CreateToken(user, _appSettings, 60);
-                token.User = Converter.Convert(user);
+                token.User = Converter.Convert<User, UserDTO>(user);
 
                 return Ok(token);
             }
