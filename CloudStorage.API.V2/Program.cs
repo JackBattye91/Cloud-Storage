@@ -41,11 +41,12 @@ namespace CloudStorage.API.V2
                 x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(o => {
+            }).AddJwtBearer(o =>
+            {
                 o.RequireHttpsMetadata = false;
                 o.SaveToken = false;
                 o.TokenValidationParameters = TokenUtilities.ValidationParameters(appSettings);
-            });
+            }).AddCookie();
 
             builder.Services.AddAuthorization(config =>
             { 

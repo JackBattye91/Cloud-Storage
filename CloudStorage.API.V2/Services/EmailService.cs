@@ -1,4 +1,5 @@
 ﻿using CloudStorage.API.V2.Models;
+using Microsoft.Extensions.Options;
 
 namespace CloudStorage.API.V2.Services
 {
@@ -9,18 +10,20 @@ namespace CloudStorage.API.V2.Services
 
     public class EmailService : IEmailService
     {
-        public readonly JB.Email.IWrapper _emailWrapper;
+        private readonly JB.Email.IWrapper _emailWrapper;
+        private readonly AppSettings _appSettings;
 
-        public EmailService(JB.Email.IWrapper emailWrapper)
+        public EmailService(JB.Email.IWrapper emailWrapper, IOptions<AppSettings> appSettings)
         {
             _emailWrapper = emailWrapper;
+            _appSettings = appSettings.Value;
         }
 
         public async Task SendAccountActivationKeyAsync(User user, string activationKey)
         {
             JB.Email.Interfaces.IEmailHeader header = new EmailHeader() 
             { 
-                Sender = "jack.battye@hotmail.co.uk",
+                Sender = _appSettings.Email.Sender,
                 To = new List<string>()
                 {
                     user.Email
