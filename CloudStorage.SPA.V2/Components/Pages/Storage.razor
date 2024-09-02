@@ -63,7 +63,8 @@
                     Id = Guid.NewGuid().ToString(),
                     Name = "Testing 01",
                     Description = "Testing Description",
-                    Extension = "images/png"
+                    MimeType = "image/png",
+                    Extension = "png"
                 };
 
                 Models.BlobDetail? uploadedBlob = await _blobService.UploadStreamAsync(blobDetail, imgStream);
