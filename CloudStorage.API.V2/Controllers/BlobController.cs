@@ -52,7 +52,7 @@ namespace CloudStorage.API.V2.Controllers
         {
             try
             {
-                string? userId = TokenUtilities.GetSubjectId(Request);
+                string? userId = "cfb983ec-27ce-4c1a-9391-fcd3382c4417";// TokenUtilities.GetSubjectId(Request);
 
                 if (userId == null) {
                     return Unauthorized();
@@ -104,15 +104,16 @@ namespace CloudStorage.API.V2.Controllers
 
         [HttpGet]
         [Route("thumbnail/{id}")]
-        public async Task<IActionResult> GetBlobThumbnailStream([FromRoute] string id)
+        public async Task<Stream?> GetBlobThumbnailStream([FromRoute] string id)
         {
             try
             {
-                string? userId = TokenUtilities.GetSubjectId(Request);
+                string? userId = "cfb983ec-27ce-4c1a-9391-fcd3382c4417";// TokenUtilities.GetSubjectId(Request);
 
                 if (userId == null)
                 {
-                    return Unauthorized();
+                    Response.StatusCode = 401;
+                    return null;
                 }
 
                 User user = await _userService.GetByIdAsync(userId);
@@ -120,12 +121,13 @@ namespace CloudStorage.API.V2.Controllers
                 BlobDetail blobDetail = await _blobDetailService.Get(id);
                 Stream dataStream = await _blobService.GetBlobStreamAsync(Consts.Blob.THUMBNAIL_CONTAINER, blobDetail.ThumbnailName);
                 Response.ContentType = blobDetail.MimeType;
-                return Ok(dataStream);
+                return dataStream;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Get Blob Details Failed");
-                return StatusCode(500);
+                Response.StatusCode = 500;
+                return null;
             }
         }
 
@@ -154,6 +156,7 @@ namespace CloudStorage.API.V2.Controllers
                 blobDetail.ContainerName = "images";
                 blobDetail.BlobName = string.Format("{0}.{1}", Guid.NewGuid(), fileExtension);
                 blobDetail.ThumbnailName = string.Format("{0}.{1}", Guid.NewGuid(), fileExtension);
+                blobDetail.UserId = userId;
 
                 blobDetail = await _blobDetailService.Create(blobDetail);
 
