@@ -8,8 +8,7 @@
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid>
         <MudItem xs="12">
-            <InputFile id="fileInput" multiple hidden accept=".png, .jpg, .gif" OnChange="OnChangeInputFile" />
-            <MudIconButton for="fileInput" HtmlTag="label" Icon="@Icons.Material.Filled.Add" Color="Color.Primary" />
+            <MudIconButton HtmlTag="label" Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="() => { ShowOverlay = true; }"/>
             <MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" Color="Color.Primary" />
             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" />
         </MudItem>
@@ -24,69 +23,90 @@
     }
     else
     {
-        <MudGrid>
+        <MudGrid Class="p-3">
             @foreach (Models.BlobDetail blobDetail in BlobDetails)
             {
-                <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail"/>
+                <MudItem xs="6" sm="4" xl="3">
+                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="async () => { await ShowFullImage(blobDetail); }"/>
+                </MudItem>
             }
         </MudGrid>
     }
-    
 </MudContainer>
 
-<MudOverlay @bind-Visible="showOverlay" DarkBackground AutoClose="true">
-    
+<MudOverlay @bind-Visible="ShowOverlay" DarkBackground AutoClose="false" LockScroll="false">
+    @switch(overlayType)
+    {
+        default:
+        case Consts.OverlayType.Upload:
+            <CloudStorage.SPA.V2.Components.Views.BlobUploadView OnClose="() => { ShowOverlay = false; }" OnFilesUploaded="OnFilesUploaded" />
+            break;
+
+        case Consts.OverlayType.Image:
+            break;
+    }
 </MudOverlay>
 
 @code {
-    private bool showOverlay {get; set; } = false;
-
-    private List<Models.BlobDetail>? BlobDetails { get; set; }
+    private Consts.OverlayType overlayType = Consts.OverlayType.Upload;
+    private IList<Models.BlobDetail>? BlobDetails { get; set; }
+    private bool ShowOverlay { get; set; } = false;
     private bool IsUploading { get; set; } = false;
+    private Models.BlobDetail? FullImageBlobDetails { get; set; } = null;
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        BlobDetails = new List<Models.BlobDetail>()
-        {
-            new Models.BlobDetail() { Id = Guid.NewGuid().ToString(), Name = "Testing", Description="Description" }    
-        };
+        _ = GetBlobDetails();
     }
 
-    private async Task OnChangeInputFile(InputFileChangeEventArgs e)
+    private void OnFilesUploaded(IList<Models.BlobDetail> uploadedBlobDetails)
     {
-        try
+        foreach (var detail in uploadedBlobDetails)
         {
-            IsUploading = true;
-            IReadOnlyList<IBrowserFile> uploadedImages = e.GetMultipleFiles(10);
+            BlobDetails?.Add(detail);
+        }
+        ShowOverlay = false;
+        StateHasChanged();
+    }
 
-            foreach(IBrowserFile image in uploadedImages)
+    private async Task GetBlobDetails()
+    {
+        BlobDetails = await _blobService.GetBlobDetails();
+        StateHasChanged();
+    }
+
+    private async Task ShowFullImage(Models.BlobDetail blobDetail)
+    {
+        FullImageBlobDetails = blobDetail; 
+        overlayType = Consts.OverlayType.Image; 
+        ShowOverlay = true;
+        StateHasChanged();
+    }
+
+    private async Task<string> GetBase64Image()
+    {
+        if (FullImageBlobDetails != null)
+        {
+            using (Stream fStream = await _blobService.GetThumbnail(FullImageBlobDetails.Id))
             {
-                var imgStream = image.OpenReadStream();
-                Models.BlobDetail blobDetail = new Models.BlobDetail()
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = "Testing 01",
-                    Description = "Testing Description",
-                    MimeType = "image/png",
-                    Extension = "png"
-                };
+                int bytesRead = 0;
+                byte[] buffer = new byte[1024];
+                List<byte> base64Data = new List<byte>();
 
-                Models.BlobDetail? uploadedBlob = await _blobService.UploadStreamAsync(blobDetail, imgStream);
-
-                if (uploadedBlob != null)
+                do
                 {
-                    BlobDetails?.Add(uploadedBlob);
-                    StateHasChanged();
-                }
+                    bytesRead = await fStream.ReadAsync(buffer, 0, 1024);
+                    base64Data.AddRange(buffer[..bytesRead]);
+                } while (bytesRead > 0);
+
+                string base64Image = Convert.ToBase64String(base64Data.ToArray());
+
+                return string.Format("data:image/png;base64, {0}", base64Image);
             }
-        } 
-        catch (Exception ex)
-        {
-
         }
 
-        IsUploading = false;
+        return string.Empty;
     }
 }

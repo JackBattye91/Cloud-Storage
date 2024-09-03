@@ -1,64 +1,121 @@
-﻿<h3>BlobUploadView</h3>
+﻿@rendermode InteractiveServer
+@inject BlobService _blobService;
 
-<MudContainer>
+<MudContainer Style="width: 80vw; height: 80vh; background-color: #FFFFFFFF;">
     <MudGrid>
-        <MudItem>
-            <MudText Typo="Typo.h2">Upload</MudText>
+        <MudItem xs="12">
+            <MudGrid>
+                <MudItem xs="9">
+                    <MudText Typo="Typo.h2">Upload</MudText>
+                </MudItem>
+                <MudItem xs="3" Class="text-end">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="() => { OnClose.InvokeAsync(); }" />
+                </MudItem>
+            </MudGrid>
         </MudItem>
 
-        <MudItem>
-            @if (BrowserFiles != null)
+        <MudItem xs="12">
+            <MudGrid>
+                <MudItem xs="10">
+                    <MudFileUpload id="fileUpload" T="IReadOnlyList<IBrowserFile>" Hidden="true" OnFilesChanged="OnFileChanged" />
+                    <MudButton for="fileUpload" HtmlTag="label" StartIcon="@Icons.Material.Filled.Add"  Color="Color.Primary">Add</MudButton>
+                </MudItem>
+
+                <MudItem xs="2" Class="text-end">
+                    <MudButton StartIcon="@Icons.Material.Filled.Upload" Variant="Variant.Filled" Color="Color.Primary" OnClick="UploadFiles">Upload</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+
+        <MudItem xs="12" Style="overflow: scroll; height: 60vh; margin: 10px;">
+            @if (BrowserFiles.Count > 0)
             {
                 <MudGrid>
                     @foreach (var item in BrowserFiles)
                     {
-                        <MudItem>
-                            <MudImage />
-                            <MudText>@item.Name</MudText>
-                            <MudText>@GetFileSize(item)</MudText>
-                        </MudItem>
+                        <BlobUploadFileView File="@item" OnDeleted="RemoveFile" />
                     }
                 </MudGrid>
             }
             else
             {
-                <MudProgressCircular Indeterminate="true"/>
+                <MudText>No Files</MudText>
             }
         </MudItem>
     </MudGrid>
 </MudContainer>
 
 @code {
-    private IList<IBrowserFile>? BrowserFiles { get; set; }
+    private bool IsUploading { get; set; } = false;
+    private IList<IBrowserFile> BrowserFiles { get; set; } = new List<IBrowserFile>();
 
-    private static string GetFileSize(IBrowserFile file)
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<IList<Models.BlobDetail>> OnFilesUploaded { get; set; }
+
+    private async Task UploadFiles()
     {
-        long size = file.Size;
-        string prefix = "b";
-        int index = 0;
-
-        if (size > 1000)
+        IList<Models.BlobDetail> uploadedBlobDetails = new List<Models.BlobDetail>();
+        try
         {
-            size /= 1000;
-            index++;
+            IsUploading = true;
+
+            foreach (IBrowserFile image in BrowserFiles)
+            {
+                string extension = "";
+
+                if (image.Name.Contains('.'))
+                {
+                    extension = image.Name.Substring(image.Name.LastIndexOf('.') + 1);
+                }
+
+                Models.BlobDetail blobDetail = new Models.BlobDetail()
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = image.Name,
+                    Description = "",
+                    MimeType = image.ContentType,
+                    Extension = extension
+                };
+
+                var imgStream = image.OpenReadStream();
+                Models.BlobDetail? uploadedBlob = await _blobService.UploadStreamAsync(blobDetail, imgStream);
+
+                if (uploadedBlob != null)
+                {
+                    uploadedBlobDetails.Add(uploadedBlob);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+
         }
 
-        switch (index)
-        {
-            case 1:
-                prefix = "kb";
-                break;
-            case 2:
-                prefix = "mb";
-                break;
-            case 3:
-                prefix = "gb";
-                break;
-            case 4:
-                prefix = "tb";
-                break;
-        }
+        await OnFilesUploaded.InvokeAsync(uploadedBlobDetails);
+        IsUploading = false;
+    }
 
-        return string.Format("{0}{1}", size, prefix);
-}
+
+    private async Task OnFileChanged(InputFileChangeEventArgs e)
+    {
+        if (BrowserFiles != null)
+        {
+            foreach (var file in e.GetMultipleFiles())
+            {
+                BrowserFiles.Add(file);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        BrowserFiles.Remove(file);
+        StateHasChanged();
+    }
 }

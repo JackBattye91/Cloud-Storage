@@ -1,29 +1,68 @@
-﻿@inject IJSRuntime jsRuntime
+﻿@rendermode InteractiveServer
+@inject IJSRuntime jsRuntime
+@inject BlobService _blobService;
 
-<MudItem xs="3">
-    <img id="@imageId" />
-    <h3>@BlobDetail.Name</h3>
-    <p>@BlobDetail.Description</p>
-</MudItem>
-
+<MudContainer Class="text-center">
+    <img src="@string.Format("data:image/png;base64, {0}", Base64Image)" style="max-width: 80%; max-height: 256px;" />
+    <MudText Typo="Typo.body1">@BlobDetail.Name</MudText>
+    <MudText Typo="Typo.caption">@BlobDetail.Description</MudText>
+</MudContainer>
 
 @code {
     [Parameter]
     public Models.BlobDetail BlobDetail { get; set; } = default!;
-
+    private string? Base64Image;
     private string imageId = string.Empty;
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        imageId = string.Format("bloblThumbnail_{0}", BlobDetail.Id);
-        _ = GetThumbnailImage();
+        imageId = string.Format("blobThumbnail_{0}", BlobDetail.Id);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _ = GetThumbnailImage();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
     }
 
     protected async Task GetThumbnailImage()
     {
-        Stream imgStream = new MemoryStream();
-        await jsRuntime.InvokeVoidAsync("setImageUsingStream", imageId, imgStream);
+        try
+        {
+            using (Stream imgStream = await _blobService.GetThumbnail(BlobDetail.Id))
+            {
+                int bytesRead = 0;
+                byte[] buffer = new byte[1024];
+                List<byte> base64Data = new List<byte>();
+
+                do
+                {
+                    bytesRead = await imgStream.ReadAsync(buffer, 0, 1024);
+                    base64Data.AddRange(buffer[..bytesRead]);
+                } while (bytesRead > 0);
+
+                Base64Image = Convert.ToBase64String(base64Data.ToArray());
+                StateHasChanged();
+            }
+            /*
+            MemoryStream memoryStream = new MemoryStream();
+            await imgStream.CopyToAsync(memoryStream);
+
+            await jsRuntime.InvokeVoidAsync("setImageUsingStream", imageId, memoryStream);
+            */
+        }
+        catch (Exception ex)
+        {
+            
+        }
     }
 }
