@@ -135,26 +135,12 @@ namespace CloudStorage.SPA.V2.Services
                 {
                     throw new Exception($"Server returned error code: {(int)responseMessage.StatusCode} - {await requestMessage.Content.ReadAsStringAsync()}");
                 }
-            }
+            } 
             catch (Exception ex)
             {
                 _logger.LogError(ex, "UploadStreamAsync failed");
                 throw;
             }
-        }
-
-        protected async Task WriteBlobDetails(Stream stream, BlobDetail blobDetail)
-        {
-            int nameLength = blobDetail.Name.Length;
-            int descriptionLength = blobDetail.Description.Length;
-
-            byte[] nameBuffer = System.Text.Encoding.UTF8.GetBytes(blobDetail.Name);
-            byte[] descriptionBuffer = System.Text.Encoding.UTF8.GetBytes(blobDetail.Description);
-
-            stream.WriteByte((byte)nameLength);
-            await stream.WriteAsync(nameBuffer);
-            stream.WriteByte((byte)descriptionLength);
-            await stream.WriteAsync(descriptionBuffer);
         }
     }
 }
