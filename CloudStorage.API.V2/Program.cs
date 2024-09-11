@@ -67,6 +67,7 @@ namespace CloudStorage.API.V2
             // LOCAL
             builder.Services.AddScoped<IBlobService, BlobService>();
             builder.Services.AddScoped<IBlobDetailService, BlobDetailService>();
+            builder.Services.AddSingleton<IEmailService, EmailService>();
 
             builder.Services.AddSingleton<IUserService, UserService>();
             builder.Services.AddSingleton<IUserRepo, UserRepo>();
