@@ -58,7 +58,7 @@ namespace CloudStorage.API.V2.Controllers
 
 
                 UserDTO userDto = Converter.Convert<User, UserDTO>(user) ?? new UserDTO();
-                return Ok(pUser);
+                return Ok(userDto);
             }
             catch (Exception ex)
             {
@@ -76,7 +76,8 @@ namespace CloudStorage.API.V2.Controllers
             {
                 User user = await _userService.ActivteAccountAsync(activationKey);
 
-                return Ok(user);
+                UserDTO userDto = Converter.Convert<User, UserDTO>(user) ?? new UserDTO();
+                return Ok(userDto);
             }
             catch (Exception ex)
             {
