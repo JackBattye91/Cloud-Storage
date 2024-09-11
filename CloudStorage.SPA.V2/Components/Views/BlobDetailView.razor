@@ -2,7 +2,12 @@
 @inject IJSRuntime jsRuntime
 @inject BlobService _blobService;
 
-<MudContainer Class="text-center">
+<MudContainer Class="text-center" @onmousedown="OnMouseButtonDown" @onmouseup="OnMouseButtonUp">
+    @if (ShowCheckbox == true)
+    {
+        <MudCheckBox @bind-Value="@Selected" UncheckedIcon="@Icons.Material.Outlined.RadioButtonUnchecked" CheckedIcon="@Icons.Material.Outlined.CheckCircle" />
+    }
+
     <img src="@string.Format("data:image/png;base64, {0}", Base64Image)" style="max-width: 80%; max-height: 256px;" />
     <MudText Typo="Typo.body1">@BlobDetail.Name</MudText>
     <MudText Typo="Typo.caption">@BlobDetail.Description</MudText>
@@ -13,6 +18,10 @@
     public Models.BlobDetail BlobDetail { get; set; } = default!;
     private string? Base64Image;
     private string imageId = string.Empty;
+    private bool? Selected { get; set; }
+    private DateTime? MouseDownTimer;
+
+    static bool ShowCheckbox { get; set; }
 
     [Parameter]
     public EventCallback OnClick { get; set; }
@@ -32,6 +41,27 @@
         }
 
         await base.OnAfterRenderAsync(firstRender);
+    }
+
+    protected async Task OnMouseButtonDown(MouseEventArgs args)
+    {
+        if (args.Button == 0)
+        {
+            MouseDownTimer = DateTime.UtcNow;
+        }
+    }
+
+    protected async Task OnMouseButtonUp(MouseEventArgs args)
+    {
+        if (args.Button == 0 && MouseDownTimer != null)
+        {
+
+        }
+    }
+
+    protected TimerCallback MousetimerCallback()
+    {
+        
     }
 
     protected async Task GetThumbnailImage()
