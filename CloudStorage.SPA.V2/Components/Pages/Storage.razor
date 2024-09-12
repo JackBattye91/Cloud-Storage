@@ -27,7 +27,7 @@
             @foreach (Models.BlobDetail blobDetail in BlobDetails)
             {
                 <MudItem xs="6" sm="4" xl="3">
-                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="async () => { await ShowFullImage(blobDetail); }"/>
+                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="async () => { await ShowFullImage(blobDetail); }" ShowCheckbox="@ShowSelectCheckbox" OnLongClick="() => { ShowSelectCheckbox = true; StateHasChanged(); }"/>
                 </MudItem>
             }
         </MudGrid>
@@ -39,7 +39,7 @@
     {
         default:
         case Consts.OverlayType.Upload:
-            <CloudStorage.SPA.V2.Components.Views.BlobUploadView OnClose="() => { ShowOverlay = false; }" OnFilesUploaded="OnFilesUploaded" />
+            <CloudStorage.SPA.V2.Components.Views.BlobUploadView OnClose="() => { ShowOverlay = false; }" OnFilesUploaded="OnFilesUploaded"  />
             break;
 
         case Consts.OverlayType.Image:
@@ -53,6 +53,7 @@
     private bool ShowOverlay { get; set; } = false;
     private bool IsUploading { get; set; } = false;
     private Models.BlobDetail? FullImageBlobDetails { get; set; } = null;
+    private bool ShowSelectCheckbox { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {

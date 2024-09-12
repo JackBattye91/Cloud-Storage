@@ -16,15 +16,21 @@
 @code {
     [Parameter]
     public Models.BlobDetail BlobDetail { get; set; } = default!;
-    private string? Base64Image;
-    private string imageId = string.Empty;
-    private bool? Selected { get; set; }
-    private DateTime? MouseDownTimer;
 
-    static bool ShowCheckbox { get; set; }
+    [Parameter]
+    public bool ShowCheckbox { get; set; }
 
     [Parameter]
     public EventCallback OnClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnLongClick { get; set; }
+
+
+    private string? Base64Image;
+    private string imageId = string.Empty;
+    private bool Selected { get; set; } = false;
+    private DateTime? MouseDownTime;
 
     protected override async Task OnInitializedAsync()
     {
@@ -43,25 +49,27 @@
         await base.OnAfterRenderAsync(firstRender);
     }
 
-    protected async Task OnMouseButtonDown(MouseEventArgs args)
+    protected void OnMouseButtonDown(MouseEventArgs args)
     {
-        if (args.Button == 0)
+        if (args.Button == 0 && MouseDownTime == null)
         {
-            MouseDownTimer = DateTime.UtcNow;
+            MouseDownTime = DateTime.UtcNow;
         }
     }
 
     protected async Task OnMouseButtonUp(MouseEventArgs args)
     {
-        if (args.Button == 0 && MouseDownTimer != null)
+        if (args.Button == 0 && MouseDownTime != null)
         {
+            DateTime now = DateTime.UtcNow;
 
+            if (MouseDownTime.Value.AddSeconds(1) < now)
+            {
+                Selected = true;
+                MouseDownTime = null;
+                await OnLongClick.InvokeAsync();
+            }
         }
-    }
-
-    protected TimerCallback MousetimerCallback()
-    {
-        
     }
 
     protected async Task GetThumbnailImage()
