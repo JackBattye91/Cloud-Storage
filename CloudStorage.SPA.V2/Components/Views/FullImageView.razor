@@ -1,0 +1,98 @@
+﻿@inject IJSRuntime jsRuntime
+@inject BlobService _blobService;
+@inject ILogger<FullImageView> _logger;
+
+<MudContainer Class="text-center p-0 m-0" MaxWidth="MaxWidth.ExtraExtraLarge">
+    <MudGrid Justify="Justify.Center" Class="m-0 p-0" Style="background-color: white; max-width: 95%;">
+        <MudItem xs="12" Class="text-end p-0">
+            <MudIconButton Icon="@Icons.Material.Rounded.Cancel" DropShadow="true" Variant="Variant.Text" Size="Size.Large" OnClick="OnCloseClicked" />
+        </MudItem>
+
+        <MudItem xs="12" Class="text-center p-0 m-0">
+            @if (IsLoaded)
+            {
+                <MudProgressCircular Indeterminate="true" />
+            }
+            else
+            {
+                <img src="@string.Format("data:image/png;base64, {0}", Base64Image)" style="max-width: 95%; margin:0; padding: 0;" />
+            }
+        </MudItem>
+
+        <MudItem xs="12" Class="p-2" Style="max-width: 95%;">
+            <MudForm>
+                <MudTextField @bind-Value="BlobDetail.Name" Label="Name" />
+            </MudForm>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+
+@code {
+    [Parameter]
+    public Models.BlobDetail BlobDetail { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private bool IsLoaded = true;
+    private string? Base64Image;
+    private string BlobName { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        BlobName = BlobDetail.Name;
+        await base.OnInitializedAsync();
+        _ = GetImage();
+    }
+
+    protected async Task GetImage()
+    {
+        if (BlobDetail != null)
+        {
+            try
+            {
+                using (Stream imgStream = await _blobService.GetImage(BlobDetail.Id))
+                {
+                    int bytesRead = 0;
+                    byte[] buffer = new byte[1024];
+                    List<byte> base64Data = new List<byte>();
+
+                    do
+                    {
+                        bytesRead = await imgStream.ReadAsync(buffer, 0, 1024);
+                        base64Data.AddRange(buffer[..bytesRead]);
+                    } while (bytesRead > 0);
+
+                    Base64Image = Convert.ToBase64String(base64Data.ToArray());
+                    IsLoaded = false;
+                    StateHasChanged();
+                }
+                /*
+                MemoryStream memoryStream = new MemoryStream();
+                await imgStream.CopyToAsync(memoryStream);
+
+                await jsRuntime.InvokeVoidAsync("setImageUsingStream", imageId, memoryStream);
+            */
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetImage Failed");
+            }
+        }
+        else
+        {
+            await OnClose.InvokeAsync();
+        }
+    }
+
+    protected async Task OnCloseClicked()
+    {
+        if (string.IsNullOrEmpty(BlobName) == false)
+        {
+            BlobDetail.Name = BlobName;
+        }
+
+        await OnClose.InvokeAsync();
+    }
+}

@@ -8,14 +8,14 @@
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid>
         <MudItem xs="12">
-            <MudIconButton HtmlTag="label" Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="() => { ShowOverlay = true; }"/>
+            <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OnAdd" />
             <MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" Color="Color.Primary" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => { OverlayType = Consts.OverlayType.Delete; ShowOverlay = true; }" />
         </MudItem>
     </MudGrid>
 </MudContainer>
 
-<MudDivider DividerType="DividerType.Middle" />
+<MudDivider DividerType="DividerType.FullWidth" />
 <MudContainer MaxWidth="MaxWidth.Large">
     @if (BlobDetails == null)
     {
@@ -27,7 +27,7 @@
             @foreach (Models.BlobDetail blobDetail in BlobDetails)
             {
                 <MudItem xs="6" sm="4" xl="3">
-                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="async () => { await ShowFullImage(blobDetail); }" ShowCheckbox="@ShowSelectCheckbox" OnLongClick="() => { ShowSelectCheckbox = true; StateHasChanged(); }"/>
+                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="async () => { await ShowFullImage(blobDetail); }" OnSelected="(selected) => { UpdatedSelectedItems(selected, blobDetail); }" />
                 </MudItem>
             }
         </MudGrid>
@@ -35,25 +35,31 @@
 </MudContainer>
 
 <MudOverlay @bind-Visible="ShowOverlay" DarkBackground AutoClose="false" LockScroll="false">
-    @switch(overlayType)
+    @switch (OverlayType)
     {
         default:
         case Consts.OverlayType.Upload:
-            <CloudStorage.SPA.V2.Components.Views.BlobUploadView OnClose="() => { ShowOverlay = false; }" OnFilesUploaded="OnFilesUploaded"  />
+            <CloudStorage.SPA.V2.Components.Views.BlobUploadView OnFilesUploaded="OnFilesUploaded" OnClose="OnOverlayClosed" />
             break;
 
-        case Consts.OverlayType.Image:
+        case Consts.OverlayType.Edit:
+            <CloudStorage.SPA.V2.Components.Views.FullImageView BlobDetail="FullImageBlobDetails" OnClose="OnOverlayClosed" />
+            break;
+
+        case Consts.OverlayType.Delete:
+            <CloudStorage.SPA.V2.Components.Views.BlobDeleteView BlobDetails="SelectedBlobDetails" OnClose="OnPopupBoxClosed" />
             break;
     }
 </MudOverlay>
 
 @code {
-    private Consts.OverlayType overlayType = Consts.OverlayType.Upload;
+    private Consts.OverlayType OverlayType = Consts.OverlayType.Upload;
     private IList<Models.BlobDetail>? BlobDetails { get; set; }
     private bool ShowOverlay { get; set; } = false;
     private bool IsUploading { get; set; } = false;
     private Models.BlobDetail? FullImageBlobDetails { get; set; } = null;
     private bool ShowSelectCheckbox { get; set; } = false;
+    private IList<Models.BlobDetail> SelectedBlobDetails { get; set; } = new List<Models.BlobDetail>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -81,9 +87,43 @@
     private async Task ShowFullImage(Models.BlobDetail blobDetail)
     {
         FullImageBlobDetails = blobDetail; 
-        overlayType = Consts.OverlayType.Image; 
+        OverlayType = Consts.OverlayType.Edit; 
         ShowOverlay = true;
         StateHasChanged();
+    }
+
+    private async Task OnOverlayClosed()
+    {
+        FullImageBlobDetails = null;
+        ShowOverlay = false;
+        OverlayType = Consts.OverlayType.Upload;
+        StateHasChanged();
+    }
+    private async Task OnPopupBoxClosed(bool success)
+    {
+        if (success)
+        {
+            foreach(var selectedBlob in SelectedBlobDetails)
+            {
+                await _blobService.DeleteBlobAsync(selectedBlob.Id);
+            }
+
+            SelectedBlobDetails.Clear();
+        }
+        
+        await OnOverlayClosed();
+    }
+
+    private async Task OnAdd()
+    {
+        OverlayType = Consts.OverlayType.Upload; 
+        ShowOverlay = true;
+    }
+    private async Task OnDelete()
+    {
+        OverlayType = Consts.OverlayType.Delete;
+        ShowOverlay = true;
+        SelectedBlobDetails.Clear();
     }
 
     private async Task<string> GetBase64Image()
@@ -109,5 +149,16 @@
         }
 
         return string.Empty;
+    }
+    private void UpdatedSelectedItems(bool selected, BlobDetail blobDetail)
+    {
+        if (selected)
+        {
+            SelectedBlobDetails.Add(blobDetail);
+        }
+        else
+        {
+            SelectedBlobDetails.Remove(blobDetail);
+        }
     }
 }

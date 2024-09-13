@@ -3,6 +3,7 @@
     public enum OverlayType
     {
         Upload,
-        Image
+        Edit,
+        Delete
     }
 }

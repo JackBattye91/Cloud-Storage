@@ -1,14 +1,21 @@
 ﻿@rendermode InteractiveServer
 @inject IJSRuntime jsRuntime
 @inject BlobService _blobService;
+@inject ILogger<BlobDetailView> _logger;
 
-<MudContainer Class="text-center" @onmousedown="OnMouseButtonDown" @onmouseup="OnMouseButtonUp">
-    @if (ShowCheckbox == true)
+<MudContainer Class="text-center" @onclick="() => { OnClick.InvokeAsync(); }">
+    @if (Base64Image == null)
     {
-        <MudCheckBox @bind-Value="@Selected" UncheckedIcon="@Icons.Material.Outlined.RadioButtonUnchecked" CheckedIcon="@Icons.Material.Outlined.CheckCircle" />
+        <MudProgressCircular Indeterminate="true"/>
     }
-
-    <img src="@string.Format("data:image/png;base64, {0}", Base64Image)" style="max-width: 80%; max-height: 256px;" />
+    else
+    {
+        <div style="position: relative">
+            <MudCheckBox T="bool" ValueChanged="OnSelectedChanged" Color="Color.Dark" UncheckedIcon="@Icons.Material.Filled.RadioButtonUnchecked" CheckedIcon="@Icons.Material.Filled.CheckCircle" Style="position:absolute; top: 0px; right: 0px;" />
+            <img src="@string.Format("data:image/png;base64, {0}", Base64Image)" style="max-width: 100%; max-height: 256px;" />
+        </div>
+    }
+    
     <MudText Typo="Typo.body1">@BlobDetail.Name</MudText>
     <MudText Typo="Typo.caption">@BlobDetail.Description</MudText>
 </MudContainer>
@@ -25,6 +32,9 @@
 
     [Parameter]
     public EventCallback OnLongClick { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnSelected { get; set; }
 
 
     private string? Base64Image;
@@ -63,7 +73,7 @@
         {
             DateTime now = DateTime.UtcNow;
 
-            if (MouseDownTime.Value.AddSeconds(1) < now)
+            if (MouseDownTime.Value.AddMilliseconds(200) < now)
             {
                 Selected = true;
                 MouseDownTime = null;
@@ -96,11 +106,16 @@
             await imgStream.CopyToAsync(memoryStream);
 
             await jsRuntime.InvokeVoidAsync("setImageUsingStream", imageId, memoryStream);
-            */
+        */
         }
         catch (Exception ex)
         {
-            
+            _logger.LogError(ex, "GetThumbnailImage Failed");
         }
+    }
+
+    protected async Task OnSelectedChanged(bool value)
+    {
+        await OnSelected.InvokeAsync(value);
     }
 }

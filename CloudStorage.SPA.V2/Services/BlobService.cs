@@ -36,6 +36,7 @@ namespace CloudStorage.SPA.V2.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "GetBlobDetails Failed");
             }
 
             return new List<BlobDetail>();
@@ -60,6 +61,7 @@ namespace CloudStorage.SPA.V2.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "GetThumbnail Failed");
                 throw;
             }
         }
@@ -139,6 +141,25 @@ namespace CloudStorage.SPA.V2.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "UploadStreamAsync failed");
+                throw;
+            }
+        }
+    
+        public async Task DeleteBlobAsync(string id)
+        {
+            try
+            {
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Delete, $"api/Blob/{id}");
+                HttpClient client = _clientFactory.CreateClient("api");
+                HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+                if (!responseMessage.IsSuccessStatusCode)
+                {
+                    throw new Exception("");
+                }
+            }
+            catch (Exception ex)
+            {
                 throw;
             }
         }

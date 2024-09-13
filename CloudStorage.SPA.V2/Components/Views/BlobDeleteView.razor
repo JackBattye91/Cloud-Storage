@@ -1,0 +1,51 @@
+﻿
+<MudGrid Style="background-color: white;">
+    <MudItem xs="12" Class="text-center">
+        <MudText>@CreateMessage()</MudText>
+    </MudItem>
+
+    <MudItem xs="12" Class="text-center">
+        <MudButton Class="m-2" Variant="Variant.Filled" Color="Color.Error" OnClick="OnYesClicked">Yes</MudButton>
+        <MudButton Class="m-2" Variant="Variant.Filled" Color="Color.Tertiary" OnClick="OnNoClicked">No</MudButton>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter]
+    public IList<BlobDetail> BlobDetails { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (BlobDetails.Count == 0)
+        {
+            await OnClose.InvokeAsync(false);
+        }
+    }
+
+    protected string CreateMessage()
+    {
+        if (BlobDetails.Count == 1)
+        {
+            return string.Format("Are you sure you want to delete {0}?", BlobDetails[0].Name);
+        }
+        else
+        {
+            return string.Format("Are you sure you want to delete {0} items?", BlobDetails.Count);
+        }
+    }
+
+    protected async Task OnYesClicked()
+    {
+        await OnClose.InvokeAsync(true);
+    }
+
+    protected async Task OnNoClicked()
+    {
+        await OnClose.InvokeAsync(false);
+    }
+}

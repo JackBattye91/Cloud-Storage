@@ -1,4 +1,5 @@
 ﻿@rendermode InteractiveServer
+@inject ILogger<BlobUploadFileView> _logger;
 @*@inject IJSRuntime jsRuntime;*@
 
 <MudItem xs="4" Class="text-center">
@@ -58,7 +59,7 @@
         }
         catch (Exception ex)
         {
-
+            _logger.LogError(ex, "GetThumbnailImage Failed");
         }
 
         IsImageLoading = false;
