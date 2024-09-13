@@ -84,7 +84,7 @@ namespace CloudStorage.API.V2.Controllers
         {
             try
             {
-                string? userId = TokenUtilities.GetSubjectId(Request);
+                string? userId = "cfb983ec-27ce-4c1a-9391-fcd3382c4417";// TokenUtilities.GetSubjectId(Request);
 
                 if (userId == null) {
                     return Unauthorized();
@@ -97,7 +97,7 @@ namespace CloudStorage.API.V2.Controllers
            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Get Blob Details Failed");
+                _logger.LogError(ex, "Get Blob Stream Failed");
                 return StatusCode(500);
             }
         }
@@ -125,7 +125,7 @@ namespace CloudStorage.API.V2.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Get Blob Details Failed");
+                _logger.LogError(ex, "Get Blob Thumbnail Failed");
                 Response.StatusCode = 500;
                 return null;
             }
@@ -199,6 +199,46 @@ namespace CloudStorage.API.V2.Controllers
             }
         }
 
+        [HttpDelete]
+        [Route("unlinked")]
+        public async Task<IActionResult> DeleteUnlinkedBlobs()
+        {
+            try
+            {
+                IList<BlobDetail> blobDetails = await _blobDetailService.GetAll();
+
+                foreach (BlobDetail blobDetail in blobDetails)
+                {
+                    try
+                    {
+                        using (Stream stream = await _blobService.GetBlobStreamAsync(blobDetail.ContainerName, blobDetail.BlobName))
+                        {
+                            if (stream != null && stream.CanRead)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                await _blobDetailService.Delete(blobDetail.Id);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await _blobDetailService.Delete(blobDetail.Id);
+                    }
+                }
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Get Blob Details Failed");
+                return StatusCode(500);
+            }
+        }
+
+
         protected async Task<BlobDetail?> GetBlobDetails(Stream dataStream)
         {
             byte[] buffer = new byte[1024];
@@ -219,6 +259,7 @@ namespace CloudStorage.API.V2.Controllers
 
             return null;
         }
+
 
         protected async Task<Stream?> GetFileStream(Stream dataStream)
         {

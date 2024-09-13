@@ -6,6 +6,7 @@ namespace CloudStorage.API.V2.Services
     public interface IBlobDetailService
     {
         Task<BlobDetail> Get(string id);
+        Task<IList<BlobDetail>> GetAll();
         Task<IList<BlobDetail>> GetByUser(string userId);
         Task<BlobDetail> Create(BlobDetail blobDetail);
         Task<BlobDetail> Update(BlobDetail blobDetail);
@@ -72,6 +73,28 @@ namespace CloudStorage.API.V2.Services
             }
 
             throw new Exception("Unable to create BlobDetails");
+        }
+
+        public async Task<IList<BlobDetail>> GetAll()
+        {
+            var rc = await _noSqlWrapper.GetItems<BlobDetail>(_appSettings.Database.Database, Consts.Database.BlobDetailContainer);
+
+            if (rc.Success)
+            {
+                return rc.Data!;
+            }
+
+            if (rc.Failed)
+            {
+                Exception? ex = rc.Errors?.FirstOrDefault()?.Exception;
+
+                if (ex != null)
+                {
+                    throw ex;
+                }
+            }
+
+            throw new Exception("Unable to get all BlobDetails");
         }
 
         public async Task<IList<BlobDetail>> GetByUser(string userId)
