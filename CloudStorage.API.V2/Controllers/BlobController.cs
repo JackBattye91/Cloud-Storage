@@ -80,33 +80,33 @@ namespace CloudStorage.API.V2.Controllers
 
         [HttpGet]
         [Route("stream/{id}")]
-        public async Task<IActionResult> GetBlobStream([FromRoute] string id)
+        public async Task<Stream> GetBlobStream([FromRoute] string id)
         {
             try
             {
                 string? userId = "cfb983ec-27ce-4c1a-9391-fcd3382c4417";// TokenUtilities.GetSubjectId(Request);
 
                 if (userId == null) {
-                    return Unauthorized();
+                    Response.StatusCode = 401;
+                    return Stream.Null;
                 }
 
                 BlobDetail blobDetail = await _blobDetailService.Get(id);
                 Stream dataStream = await _blobService.GetBlobStreamAsync(blobDetail.ContainerName, blobDetail.BlobName);
                 Response.ContentType = blobDetail.MimeType;
-
-                Response.Body = dataStream;
-                return Ok();
+                return dataStream;
            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Get Blob Stream Failed");
-                return StatusCode(500);
+                Response.StatusCode = 500;
+                return Stream.Null;
             }
         }
 
         [HttpGet]
         [Route("thumbnail/{id}")]
-        public async Task<IActionResult> GetBlobThumbnailStream([FromRoute] string id)
+        public async Task<Stream> GetBlobThumbnailStream([FromRoute] string id)
         {
             try
             {
@@ -115,7 +115,7 @@ namespace CloudStorage.API.V2.Controllers
                 if (userId == null)
                 {
                     Response.StatusCode = 401;
-                    return null;
+                    return Stream.Null;
                 }
 
                 User user = await _userService.GetByIdAsync(userId);
@@ -123,13 +123,13 @@ namespace CloudStorage.API.V2.Controllers
                 BlobDetail blobDetail = await _blobDetailService.Get(id);
                 Stream dataStream = await _blobService.GetBlobStreamAsync(Consts.Blob.THUMBNAIL_CONTAINER, blobDetail.ThumbnailName);
                 Response.ContentType = blobDetail.MimeType;
-                Response.Body = dataStream;
-                return Ok();
+                return dataStream;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Get Blob Thumbnail Failed");
-                return StatusCode(500);
+                Response.StatusCode = 500;
+                return Stream.Null;
             }
         }
 

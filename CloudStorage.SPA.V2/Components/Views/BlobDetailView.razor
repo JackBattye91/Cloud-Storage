@@ -40,6 +40,7 @@
     private string? Base64Image;
     private string imageId = string.Empty;
     private bool Selected { get; set; } = false;
+    private bool IsLoading { get; set; } = true;
     private DateTime? MouseDownTime;
 
     protected override async Task OnInitializedAsync()
@@ -51,12 +52,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await base.OnAfterRenderAsync(firstRender);
+
         if (firstRender)
         {
             _ = GetThumbnailImage();
         }
-
-        await base.OnAfterRenderAsync(firstRender);
     }
 
     protected void OnMouseButtonDown(MouseEventArgs args)
@@ -88,6 +89,7 @@
         {
             using (Stream imgStream = await _blobService.GetThumbnail(BlobDetail.Id))
             {
+
                 int bytesRead = 0;
                 byte[] buffer = new byte[1024];
                 List<byte> base64Data = new List<byte>();
@@ -100,13 +102,12 @@
 
                 Base64Image = Convert.ToBase64String(base64Data.ToArray());
                 StateHasChanged();
+                /*
+                await jsRuntime.InvokeVoidAsync("setImageUsingStream", imageId, imgStream);
+                IsLoading = false;
+                StateHasChanged();
+                */
             }
-            /*
-            MemoryStream memoryStream = new MemoryStream();
-            await imgStream.CopyToAsync(memoryStream);
-
-            await jsRuntime.InvokeVoidAsync("setImageUsingStream", imageId, memoryStream);
-        */
         }
         catch (Exception ex)
         {
