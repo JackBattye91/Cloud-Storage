@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.21.2" />
     <PackageReference Include="JB_Library_Blob" Version="1.0.44" />
     <PackageReference Include="JB_Library_Common" Version="1.0.44" />
     <PackageReference Include="JB_Library_Email" Version="1.0.44" />

@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using JB.Blob;
 using JB.Email;
 using JB.NoSqlDatabase;
+using Azure.Storage;
+using Azure.Storage.Blobs;
+using Microsoft.Extensions.Azure;
+using JB.Blob;
 
 namespace CloudStorage.API.V2
 {
@@ -62,10 +65,10 @@ namespace CloudStorage.API.V2
             // JB
             builder.Services.AddNoSqlDatabaseService(appSettings.Database.ConnectionString);
             builder.Services.AddEmailService(appSettings.Email.ApiKey);
-            builder.Services.AddBlobService(appSettings.Blob.ConnectionString);
+
 
             // LOCAL
-            builder.Services.AddScoped<IBlobService, BlobService>();
+            builder.Services.AddSingleton<IBlobService, BlobService>();
             builder.Services.AddScoped<IBlobDetailService, BlobDetailService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
 

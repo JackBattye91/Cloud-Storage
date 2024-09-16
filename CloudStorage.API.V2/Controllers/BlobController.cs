@@ -93,7 +93,9 @@ namespace CloudStorage.API.V2.Controllers
                 BlobDetail blobDetail = await _blobDetailService.Get(id);
                 Stream dataStream = await _blobService.GetBlobStreamAsync(blobDetail.ContainerName, blobDetail.BlobName);
                 Response.ContentType = blobDetail.MimeType;
-                return Ok(dataStream);
+
+                Response.Body = dataStream;
+                return Ok();
            }
             catch (Exception ex)
             {
@@ -104,7 +106,7 @@ namespace CloudStorage.API.V2.Controllers
 
         [HttpGet]
         [Route("thumbnail/{id}")]
-        public async Task<Stream?> GetBlobThumbnailStream([FromRoute] string id)
+        public async Task<IActionResult> GetBlobThumbnailStream([FromRoute] string id)
         {
             try
             {
@@ -121,13 +123,13 @@ namespace CloudStorage.API.V2.Controllers
                 BlobDetail blobDetail = await _blobDetailService.Get(id);
                 Stream dataStream = await _blobService.GetBlobStreamAsync(Consts.Blob.THUMBNAIL_CONTAINER, blobDetail.ThumbnailName);
                 Response.ContentType = blobDetail.MimeType;
-                return dataStream;
+                Response.Body = dataStream;
+                return Ok();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Get Blob Thumbnail Failed");
-                Response.StatusCode = 500;
-                return null;
+                return StatusCode(500);
             }
         }
 
