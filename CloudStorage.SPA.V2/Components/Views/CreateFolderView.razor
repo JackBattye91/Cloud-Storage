@@ -1,0 +1,35 @@
+﻿<MudGrid Style="background-color: white;">
+    <MudItem xs="12">
+        <MudText Typo="Typo.h4">Create Folder</MudText>
+    </MudItem>
+
+    <MudItem xs="12" Class="text-center">
+        <MudTextField @bind-Value="FolderName" Class="m-2" Label="Folder Name"/>
+    </MudItem>
+
+    <MudItem xs="12" Class="text-center">
+        <MudButton Class="m-2" Variant="Variant.Filled" Color="Color.Tertiary" OnClick="OnCreateClicked">Create</MudButton>
+        <MudButton Class="m-2" Variant="Variant.Filled" Color="Color.Error" OnClick="OnCloseClicked">Close</MudButton>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<BlobDetail> OnFolderCreated { get; set; }
+
+    protected string FolderName { get; set; } = default!;
+
+    protected async Task OnCreateClicked()
+    {
+        await OnFolderCreated.InvokeAsync(new BlobDetail() { Name = FolderName, IsDirectory = true });
+        await OnClose.InvokeAsync(true);
+    }
+
+    protected async Task OnCloseClicked()
+    {
+        await OnClose.InvokeAsync(false);
+    }
+}
