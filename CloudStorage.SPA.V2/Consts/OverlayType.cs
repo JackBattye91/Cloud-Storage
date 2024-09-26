@@ -4,6 +4,7 @@
     {
         Upload,
         Edit,
-        Delete
+        Delete,
+        CreateFolder
     }
 }
