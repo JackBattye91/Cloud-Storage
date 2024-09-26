@@ -4,15 +4,23 @@
 @inject ILogger<BlobDetailView> _logger;
 
 <MudContainer Class="text-center" @onclick="() => { OnClick.InvokeAsync(); }">
-    @if (Base64Image == null)
+    @if (Base64Image == null && BlobDetail.IsDirectory == false)
     {
         <MudProgressCircular Indeterminate="true"/>
     }
     else
     {
         <div style="position: relative">
-            <MudCheckBox T="bool" ValueChanged="OnSelectedChanged" Color="Color.Dark" UncheckedIcon="@Icons.Material.Filled.RadioButtonUnchecked" CheckedIcon="@Icons.Material.Filled.CheckCircle" Style="position:absolute; top: 0px; right: 0px;" />
-            <img src="@string.Format("data:image/png;base64, {0}", Base64Image)" style="max-width: 100%; max-height: 256px;" />
+            @if (BlobDetail.IsDirectory)
+            {
+                <img src="images/icons8-folder-500.png" style="max-width: 100%; max-height: 256px;" />
+            }
+            else
+            {
+                <MudCheckBox T="bool" ValueChanged="OnSelectedChanged" Color="Color.Dark" UncheckedIcon="@Icons.Material.Filled.RadioButtonUnchecked" CheckedIcon="@Icons.Material.Filled.CheckCircle" Style="position:absolute; top: 0px; right: 0px;" />
+                <img src="@string.Format("data:image/png;base64, {0}", Base64Image)" style="max-width: 100%; max-height: 256px;" />
+            }
+            
         </div>
     }
     
@@ -36,28 +44,34 @@
     [Parameter]
     public EventCallback<bool> OnSelected { get; set; }
 
-
-    private string? Base64Image;
-    private string imageId = string.Empty;
+    private string? Base64Image { get; set; }
+    private string imageId { get; set; } = string.Empty;
     private bool Selected { get; set; } = false;
     private bool IsLoading { get; set; } = true;
-    private DateTime? MouseDownTime;
+    private DateTime? MouseDownTime { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
         imageId = string.Format("blobThumbnail_{0}", BlobDetail.Id);
+
+        _ = GetThumbnailImage();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnParametersSetAsync()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        await base.OnParametersSetAsync();
 
-        if (firstRender)
+        if (!imageId.Contains(BlobDetail.Id))
         {
+            IsLoading = true;
+            imageId = string.Format("blobThumbnail_{0}", BlobDetail.Id);
+            Base64Image = null;
+            StateHasChanged();
+
             _ = GetThumbnailImage();
         }
+        
     }
 
     protected void OnMouseButtonDown(MouseEventArgs args)
