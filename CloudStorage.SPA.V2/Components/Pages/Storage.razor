@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @*@attribute [Authorize(Policy = "Password")]*@
 @inject BlobService _blobService;
+@inject IJSRuntime jsRuntime;
 
 <PageTitle>Storage</PageTitle>
 
@@ -9,7 +10,7 @@
     <MudGrid>
         <MudItem xs="12">
             <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OnAdd" />
-            <MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" Color="Color.Primary" />
+            <!--<MudIconButton Icon="@Icons.Material.Filled.CreateNewFolder" Color="Color.Primary" OnClick="OnCreateFolder" />-->
             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => { OverlayType = Consts.OverlayType.Delete; ShowOverlay = true; }" />
         </MudItem>
     </MudGrid>
@@ -24,10 +25,17 @@
     else
     {
         <MudGrid Class="p-3">
-            @foreach (Models.BlobDetail blobDetail in BlobDetails)
+            @foreach (Models.BlobDetail blobDetail in BlobDetails.Where(x => x.IsDirectory).ToList())
             {
                 <MudItem xs="6" sm="4" xl="3">
-                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="async () => { await ShowFullImage(blobDetail); }" OnSelected="(selected) => { UpdatedSelectedItems(selected, blobDetail); }" />
+                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="@blobDetail" OnClick="async () => {  }" OnSelected="(selected) => { }" />
+                </MudItem>
+            }
+
+            @foreach (Models.BlobDetail blobDetail in BlobDetails.Where(x => !x.IsDirectory).ToList())
+            {
+                <MudItem xs="6" sm="4" xl="3">
+                    <CloudStorage.SPA.V2.Components.Views.BlobDetailView BlobDetail="@blobDetail" OnClick="async () => { await ShowFullImage(blobDetail); }" OnSelected="(selected) => { UpdatedSelectedItems(selected, blobDetail); }" />
                 </MudItem>
             }
         </MudGrid>
@@ -47,7 +55,11 @@
             break;
 
         case Consts.OverlayType.Delete:
-            <CloudStorage.SPA.V2.Components.Views.BlobDeleteView BlobDetails="SelectedBlobDetails" OnClose="OnPopupBoxClosed" />
+            <CloudStorage.SPA.V2.Components.Views.BlobDeleteView BlobDetails="SelectedBlobDetails" OnClose="OnPopupDeleteBlobClosed" />
+            break;
+
+        case Consts.OverlayType.CreateFolder:
+            <CloudStorage.SPA.V2.Components.Views.CreateFolderView OnClose="OnPopupCreateFolderClosed" OnFolderCreated="OnFolderCreated"/>
             break;
     }
 </MudOverlay>
@@ -97,21 +109,44 @@
         FullImageBlobDetails = null;
         ShowOverlay = false;
         OverlayType = Consts.OverlayType.Upload;
-        StateHasChanged();
     }
-    private async Task OnPopupBoxClosed(bool success)
+
+    private async Task OnPopupDeleteBlobClosed(bool success)
     {
         if (success)
         {
-            foreach(var selectedBlob in SelectedBlobDetails)
+            for (int b = SelectedBlobDetails.Count - 1; b >= 0; b--)
             {
-                await _blobService.DeleteBlobAsync(selectedBlob.Id);
+                _ = DeleteBlob(SelectedBlobDetails[b]);
             }
-
-            SelectedBlobDetails.Clear();
         }
-        
+
         await OnOverlayClosed();
+    }
+
+    private async Task OnPopupCreateFolderClosed(bool success)
+    {
+        await OnOverlayClosed();
+    }
+
+    private async Task OnFolderCreated(BlobDetail blobDetail)
+    {
+        BlobDetails?.Add(blobDetail);
+        StateHasChanged();
+    }
+
+    private async Task DeleteBlob(Models.BlobDetail blobDetail)
+    {
+        await _blobService.DeleteBlobAsync(blobDetail.Id);
+        BlobDetails?.Remove(blobDetail);
+        SelectedBlobDetails.Remove(blobDetail);
+
+        StateHasChanged();
+    }
+
+    private async Task CreateFolder()
+    {
+        
     }
 
     private async Task OnAdd()
@@ -124,6 +159,11 @@
         OverlayType = Consts.OverlayType.Delete;
         ShowOverlay = true;
         SelectedBlobDetails.Clear();
+    }
+    private async Task OnCreateFolder()
+    {
+        OverlayType = Consts.OverlayType.CreateFolder;
+        ShowOverlay = true;
     }
 
     private async Task<string> GetBase64Image()
