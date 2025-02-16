@@ -1,0 +1,262 @@
+﻿@page "/login"
+@rendermode InteractiveServer
+@inject IHttpClientFactory httpClientFactory;
+@inject ISnackbar snackbar;
+@inject ISessionStorageService sessionStorage;
+@inject ILocalStorageService localStorage;
+@inject NavigationManager navManager;
+@inject ProtectedLocalStorage protectedLocalStorage
+
+<PageTitle>Login/Register</PageTitle>
+
+<MudGrid Justify="Justify.SpaceEvenly" Style="max-width: 100vw;">
+    <MudItem xs="12" sm="12" md="4" lg="4" Class="p-4">
+        <MudText Typo="Typo.h3">Login</MudText>
+        <MudForm @ref="LoginForm">
+            <MudTextField @bind-Value="username" InputType="InputType.Text" Label="Username" Required="true" Disabled="@isLoggingIn" />
+            <MudTextField @bind-Value="password" InputType="InputType.Password" Label="Password" Required="true" Disabled="@isLoggingIn" />
+
+            <MudButton Class="mt-4" Variant="Variant.Filled" @onclick="SignIn" Disabled="@isLoggingIn">
+                @if(isLoggingIn) 
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="p-1"/>
+                }
+                Login
+            </MudButton>
+        </MudForm>
+    </MudItem>
+
+    <MudItem xs="12" sm="12" md="4" lg="4" Class="p-4">
+        <MudText Typo="Typo.h3">Register</MudText>
+        <MudForm @ref="RegisterForm">
+            <MudTextField @bind-Value="registerUsername" InputType="InputType.Text" Label="Username" Required="true" Disabled="@isLoggingIn" Validation="@(new Func<string, Task<string?>>(ValidateRegisterUsername))" />
+            <MudTextField @bind-Value="registerEmail" InputType="InputType.Email" Label="Email" Required="true" Disabled="@isLoggingIn" Validation="@(new Func<string, Task<string?>>(ValidateRegisterEmail))" />
+            <MudTextField @bind-Value="registerPassword" InputType="InputType.Password" Label="Password" Required="true" Disabled="@isLoggingIn" Validation="@(new Func<string, string?>(ValidateRegisterPassword))" />
+            <MudTextField @bind-Value="registerPasswordConfirm" InputType="InputType.Password" Label="Confirm Password" Required="true" Disabled="@isLoggingIn" Validation="@(new Func<string, string?>(ConfirmRegisterPassword))" />
+
+            <MudButton Class="mt-4" Variant="Variant.Filled" @onclick="Register" Disabled="@isLoggingIn">
+                @if (isLoggingIn)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="p-1" />
+                }
+                Register
+            </MudButton>
+        </MudForm>
+    </MudItem>
+</MudGrid>
+
+@code {
+    IUser? user;
+
+    #if DEBUG
+    string username = "jack.battye";
+    string password = "Sp@rtan117";
+    #else
+    string username = string.Empty;
+    string password = string.Empty;
+#endif
+
+    MudForm RegisterForm;
+    MudForm LoginForm;
+
+    string registerUsername = string.Empty;
+    string registerEmail = string.Empty;
+    string registerPassword = string.Empty;
+    string registerPasswordConfirm = string.Empty;
+
+    bool isLoggingIn = false;
+    bool showPassword = false;
+    InputType passwordInputType = InputType.Password;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            await AppState.Load(protectedLocalStorage);
+            user = AppState.Instance?.User;
+
+            if (user != null)
+            {
+                navManager.NavigateTo("/", true);
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task SignIn()
+    {
+        await LoginForm!.Validate();
+
+        isLoggingIn = true;
+        try
+        {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+            {
+                throw new Exception("username or password not provided");
+            }
+
+            string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+
+            HttpClient client = httpClientFactory.CreateClient("api");
+
+            HttpRequestMessage authRequestMessage = new HttpRequestMessage(HttpMethod.Get, "Authentication");
+            authRequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", basicAuth);
+            HttpResponseMessage authResponse = await client.SendAsync(authRequestMessage);
+
+            if (authResponse.IsSuccessStatusCode)
+            {
+                string authContent = await authResponse.Content.ReadAsStringAsync();
+                Token? token = JsonConvert.DeserializeObject<Token>(authContent);
+                if (token != null)
+                {
+                    await protectedLocalStorage.SetAsync(Consts.Storage.TOKEN, token);
+                }
+
+                HttpRequestMessage userRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/User");
+                HttpResponseMessage userResponseMessage = await client.SendAsync(userRequestMessage);
+
+                if (userResponseMessage.IsSuccessStatusCode)
+                {
+                    string userContent = await userResponseMessage.Content.ReadAsStringAsync();
+                    user = JsonConvert.DeserializeObject<User>(userContent);
+
+                    if (user != null)
+                    {
+                        user.Password = string.Empty;
+                        user.PasswordSalt = string.Empty;
+
+                        await protectedLocalStorage.SetAsync(Consts.Storage.USER, user);
+                        navManager.NavigateTo("/", true);
+                    }
+                }
+            }
+
+            await AppState.Load(protectedLocalStorage);
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add(ex.Message, Severity.Error);
+        }
+        isLoggingIn = false;
+    }
+    private async Task Register()
+    {
+        await RegisterForm.Validate();
+        try
+        {
+            if (!RegisterForm.IsValid)
+            {
+                return;
+            }
+
+            string basicAuth = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+
+            HttpClient client = httpClientFactory.CreateClient("api");
+
+            HttpRequestMessage authRequestMessage = new HttpRequestMessage(HttpMethod.Get, "Authentication");
+            authRequestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", basicAuth);
+            HttpResponseMessage authResponse = await client.SendAsync(authRequestMessage);
+
+            if (authResponse.IsSuccessStatusCode)
+            {
+                HttpRequestMessage userRequestMessage = new HttpRequestMessage(HttpMethod.Get, "/User");
+                HttpResponseMessage userResponseMessage = await client.SendAsync(userRequestMessage);
+
+                if (userResponseMessage.IsSuccessStatusCode)
+                {
+                    string userContent = await userResponseMessage.Content.ReadAsStringAsync();
+                    user = JsonConvert.DeserializeObject<User>(userContent);
+
+                    if (user != null)
+                    {
+                        user.Password = string.Empty;
+                        user.PasswordSalt = string.Empty;
+
+                        await protectedLocalStorage.SetAsync("user", user);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    #region VALIDATION
+    private async Task<string?> ValidateRegisterUsername(string value)
+    {
+        try
+        {
+            HttpClient client = httpClientFactory.CreateClient("api");
+            HttpRequestMessage usernameRequest = new HttpRequestMessage(HttpMethod.Get, $"user/exists/username/{value}");
+            HttpResponseMessage usernameResponse = await client.SendAsync(usernameRequest);
+
+            if (usernameResponse.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                return "Username already exists";
+            }
+            else if (usernameResponse.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                return null;
+            }
+        }
+        catch(Exception ex)
+        {
+
+        }
+
+        return "Required";
+    }
+    private async Task<string?> ValidateRegisterEmail(string value)
+    {
+        try
+        {
+            HttpClient client = httpClientFactory.CreateClient("api");
+            HttpRequestMessage usernameRequest = new HttpRequestMessage(HttpMethod.Get, $"user/exists/email/{value}");
+            HttpResponseMessage usernameResponse = await client.SendAsync(usernameRequest);
+
+            if (usernameResponse.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                return "Email address already registered to another account";
+            }
+            else if (usernameResponse.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+        return "Required";
+    }
+    private string? ValidateRegisterPassword(string value)
+    {
+        try
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+        return "Required";
+    }
+    private string? ConfirmRegisterPassword(string value)
+    {
+        if (registerPassword == registerPasswordConfirm)
+        {
+            return null;
+        }
+        return "Passwords do not match";
+    }
+    #endregion
+}

@@ -1,0 +1,370 @@
+﻿@page "/gallery"
+@rendermode InteractiveServer
+@inject IHttpClientFactory clientFactory;
+@inject IConfiguration configuration;
+@inject ISessionStorageService sessionStorage;
+@inject ProtectedLocalStorage protectedStorage;
+@inject ISnackbar snackbar;
+@inject NavigationManager navManager;
+@inject ILogger<Gallery> logger;
+<PageTitle>Gallery</PageTitle>
+
+<MudContainer>
+    <MudGrid>
+        <MudItem>
+            <MudText Typo="Typo.h3">Gallery</MudText>
+        </MudItem>
+        <MudSpacer/>
+        <MudItem Style="margin: auto 0;">
+            <MudGrid>
+                <MudItem>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" OnClick="ShowUploadFiles">
+                        Upload Image
+                    </MudButton>
+                </MudItem>
+                <MudItem>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Folder">
+                        Create Folder
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudItem>
+    </MudGrid>
+    
+    @if (loadingBlobDetails)
+    {
+        <MudItem>
+            <MudProgressCircular Indeterminate="true" />
+        </MudItem>
+    }
+    else if (blobDetails?.Count > 0)
+    {
+        <MudGrid>
+            <MudItem>
+                <MudIconButton Icon="@Icons.Material.Filled.KeyboardReturn" Disabled="@(folderPath.Count == 0)" OnClick='() => { UpdateFolderPath(".."); }'/>
+            </MudItem>
+            <MudItem Style="margin: auto 0;">
+                <CloudStorage.SPA.Components.Views.BreadcrumbsView Breadcrumbs="GetBreadcrumbs()" OnBreadcrumbClicked="(link) => { ParseFolderPath(link); StateHasChanged(); }" />
+            </MudItem>
+        </MudGrid>
+        
+        <MudGrid Justify="Justify.FlexStart">
+            @if (folderPath.Count == 0 && HasPrivateImages())
+            {
+                <CloudStorage.SPA.Components.Views.FolderView FolderName="Private" OnClick='() => { folderPath.Clear(); folderPath.Add("__private__");  }' />
+            }
+
+            @foreach (string folderName in GetFolders())
+            {
+                <CloudStorage.SPA.Components.Views.FolderView FolderName="@folderName" OnClick="() => { UpdateFolderPath(folderName); }" />
+            }
+
+            @foreach (BlobDetail blobDetail in GetBlobDetailsList())
+            {
+                <CloudStorage.SPA.Components.Views.BlobDetailView BlobDetail="blobDetail" OnClick="() => { ShowImage(blobDetail); }" OnDelete="async ()=>{ await DeleteImage(blobDetail);  }"/>
+            }
+        </MudGrid>
+    }
+
+</MudContainer>
+
+@if (uploadDrawVisible) {
+    <MudDrawer id="drawerRight" Open="true" OpenChanged="(isOpen) => { uploadDrawVisible = isOpen; }" Width="500" Anchor="Anchor.Right" Elevation="1" Fixed="true" Variant="DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h5">Upload Images</MudText>
+        </MudDrawerHeader>
+        <MudDrawerContainer Class="p-1">
+            <CloudStorage.SPA.Components.Views.FileUploadDetailsView OnFileUploaded="async() => { uploadDrawVisible = false; await GetBlobDetails();  StateHasChanged(); }"/>
+        </MudDrawerContainer>
+    </MudDrawer>
+}
+
+<MudOverlay @bind-Visible="isOverlayVisible" DarkBackground="true" AutoClose="true" ZIndex="99999">
+    @if (overlayImageLoading)
+    {
+        <MudProgressCircular Indeterminate="true"/>
+    }
+    else
+    {
+        <MudImage Src="@overlayImageSrc" Elevation="4" ObjectFit="ObjectFit.Contain" Style="max-height: 95vh; max-width: 100vw;" />
+
+        <MudStack Style="position: absolute; top: 0; right: 0; background-color: #00000055" Justify="Justify.Center">
+            <MudItem>
+                <MudIconButton Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick='async () => { await DeleteImage(overlayBlobDetail); overlayBlobDetail = null; isOverlayVisible = false; }' />
+            </MudItem>
+        </MudStack>
+    }
+    
+</MudOverlay>
+
+@code {
+    [CascadingParameter]
+    public List<string> folderPath { get; set; } = new List<string>();
+    IUser? user { get; set; } = null;
+    IList<IBlobDetail>? blobDetails { get; set; }
+
+    public bool showPrivate { get; set; } = false;
+    bool loadingBlobDetails { get; set; } = true;
+    bool isOverlayVisible { get; set; } = false;
+    string overlayImageSrc { get; set; } = string.Empty;
+    bool overlayImageLoading { get; set; } = false;
+    bool uploadDrawVisible = false;
+    IBlobDetail? overlayBlobDetail { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        string uri = navManager.ToBaseRelativePath(navManager.Uri);
+        IDictionary<string, string> queryParamters = Worker.GetQueryParameters(uri);
+
+        if(queryParamters.ContainsKey("route"))
+        {
+            string currFolder = queryParamters["route"].Trim('/');
+            folderPath = currFolder.Split('/').ToList();
+            StateHasChanged();
+        }
+
+        return base.OnInitializedAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender || user == null)
+        {
+
+            try
+            {
+                await AppState.Load(protectedStorage);
+                user = AppState.Instance?.User;
+
+                if (user == null)
+                {
+                    navManager.NavigateTo("/");
+                }
+
+                if (blobDetails == null)
+                {
+                    await GetBlobDetails();
+                }
+
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex.Message);
+                snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+    }
+
+    protected async Task GetBlobDetails()
+    {
+        loadingBlobDetails = true;
+        try
+        {
+            HttpClient client = clientFactory.CreateClient("api");
+
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "/Blob");
+            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                string content = await responseMessage.Content.ReadAsStringAsync();
+                var blobDetailsList = JsonConvert.DeserializeObject<List<BlobDetail>>(content);
+                blobDetails = blobDetailsList?.Select(x => (IBlobDetail)x).ToList();
+
+                if (blobDetails != null)
+                {
+                    //await sessionStorage.SetItemAsync<string>("blobDetailsList", content);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+            snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loadingBlobDetails = false;
+    }
+
+    private void ShowUploadFiles()
+    {
+        uploadDrawVisible = !uploadDrawVisible;
+    }
+
+    private List<string> GetFolders()
+    {
+        List<string> folderList = new List<string>();
+        string route = GetRoute().Trim('/');
+
+        foreach(BlobDetail detail in blobDetails?.Where(x => x.FileName.StartsWith(route)).ToList() ?? [])
+        {
+            string relativeFileName =  string.IsNullOrEmpty(route) ? detail.FileName : detail.FileName.Replace(route, "").Trim('/');
+
+            int fileNameStart = relativeFileName.LastIndexOf('/');
+            string fileName = fileNameStart != -1 ? relativeFileName.Substring(fileNameStart + 1) : relativeFileName;
+            string folderPath = fileNameStart != -1 ? relativeFileName.Substring(0, fileNameStart) : "";
+            string[] folders = folderPath.Length > 0 ? folderPath.Split('/') : [];
+
+            if (folders.Length >= 1)
+            {
+                if (!folderList.Contains(folders[0]))
+                {
+                    folderList.Add(folders[0]);
+                }
+            }
+        }
+
+        return folderList;
+    }
+
+    private IList<IBlobDetail> GetBlobDetailsList() {
+
+        IList<IBlobDetail> detailsList = new List<IBlobDetail>();
+        string route = GetRoute().Trim('/');
+        if (string.Equals(route, "__private__"))
+        {
+            return blobDetails?.Where(x => x.Private == true).ToList() ?? [];
+        }
+
+        foreach(BlobDetail detail in blobDetails ?? [])
+        {
+            if (detail.FileName.StartsWith(route) && detail.Private == false)
+            {
+                string remainingFileName = detail.FileName.Remove(0, route.Length).Trim('/');
+
+                if (!remainingFileName.Contains("/"))
+                {
+                    detailsList.Add(detail);
+                }
+            }
+        }
+
+        return detailsList;
+    }
+
+    private bool HasPrivateImages()
+    {
+        return blobDetails?.Any(x => x.Private == true) ?? false;
+    }
+
+    private async void ShowImage(BlobDetail pBlobDetail)
+    {
+        try
+        {
+            isOverlayVisible = true;
+            overlayImageLoading = true;
+
+            HttpClient client = clientFactory.CreateClient("api");
+            HttpRequestMessage imageRequest = new HttpRequestMessage(HttpMethod.Get, $"Blob/{pBlobDetail.Id}");
+            HttpResponseMessage imageResponse = await client.SendAsync(imageRequest);
+
+            if (imageResponse.IsSuccessStatusCode)
+            {
+                byte[] imageData = await imageResponse.Content.ReadAsByteArrayAsync();
+                string base64Image = Convert.ToBase64String(imageData);
+
+                overlayImageSrc = $"data:image/jpg;base64, {base64Image}";
+                overlayImageLoading = false;
+                overlayBlobDetail = pBlobDetail;
+            }
+            else
+            {
+                isOverlayVisible = false;
+                overlayImageLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+            isOverlayVisible = false;
+            overlayImageLoading = false;
+        }
+        StateHasChanged();
+    }
+
+    private List<Breadcrumb> GetBreadcrumbs()
+    {
+        List<Breadcrumb> breadcrumbs = new List<Breadcrumb>();
+
+        breadcrumbs.Add(new Breadcrumb() { DisplayName = "", Link = "", Icon = Icons.Material.Filled.Folder });
+
+        StringBuilder fullPath = new StringBuilder();
+        foreach(string path in folderPath ?? [])
+        {
+            if (string.Equals(path, "__private__"))
+            {
+                breadcrumbs.Add(new Breadcrumb() { DisplayName = "Private", Link = "Gallery?route=__private__", Icon = Icons.Material.Filled.Folder });
+            }
+            else {
+                fullPath.Append($"/{path.Trim('/')}");
+
+                breadcrumbs.Add(new Breadcrumb() { DisplayName = path, Link = fullPath.ToString(), Icon = Icons.Material.Filled.Folder });
+            }
+        }
+
+        return breadcrumbs;
+    }
+
+    private void UpdateFolderPath(string pPath)
+    {
+        if (string.Equals(pPath.Trim(), "..") && folderPath.Count() > 0)
+        {
+            folderPath.RemoveAt(folderPath.Count() - 1);
+        }
+        else
+        {
+            folderPath.Add(pPath);
+        }
+        StateHasChanged();
+    }
+
+    private string GetRoute()
+    {
+        StringBuilder route = new StringBuilder();
+        foreach (string path in folderPath)
+        {
+            route.Append($"/{path}");
+        }
+
+        return route.ToString();
+    }
+
+    private void ParseFolderPath(string pNewRoute)
+    {
+        if (string.IsNullOrEmpty(pNewRoute))
+        {
+            folderPath = new List<string>();
+        }
+        else
+        {
+            string[] parts = pNewRoute.Trim('/').Split('/');
+            folderPath = new List<string>(parts);
+        }
+    }
+
+    private async Task DeleteImage(IBlobDetail? pBlobDetail)
+    {
+        try
+        {
+            if (pBlobDetail != null)
+            {
+                HttpClient client = clientFactory.CreateClient("api");
+                HttpRequestMessage deleteRequest = new HttpRequestMessage(HttpMethod.Delete, $"Blob/{pBlobDetail.Id}");
+                HttpResponseMessage deleteResponse = await client.SendAsync(deleteRequest);
+
+                if (deleteResponse.IsSuccessStatusCode)
+                {
+                    blobDetails?.Remove(pBlobDetail);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
+    }
+}

@@ -1,0 +1,127 @@
+﻿@rendermode InteractiveServer
+@inject ILogger<FileUploadDetailsView> logger;
+@inject IHttpClientFactory clientFactory;
+
+<MudStack>
+    <MudTextField @bind-Value="FileName" Label="File name" Required="true" Disabled="isWorking" />
+    <MudCheckBox @bind-Checked="isPrivate" Label="Is private?" Dense="true" Disabled="isWorking" />
+    <MudCheckBox @bind-Checked="createThumbnail" Label="Create Thumbnail?" Dense="true" Disabled="isWorking" />
+
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles" Class="m-0" Required="true" Disabled="isWorking" Accept="image/jpeg">
+        <ButtonTemplate>
+            <MudButton FullWidth="true" HtmlTag="label"
+                        Variant="Variant.Filled"
+                        Color="Color.Primary"
+                        StartIcon="@Icons.Material.Filled.CloudUpload"
+                        for="@context.Id">
+                Select File
+            </MudButton>
+        </ButtonTemplate>
+    </MudFileUpload>
+
+    @if (!string.IsNullOrEmpty(Base64Image))
+    {
+        <MudImage Src="@ImageSource()" Height="200" ObjectFit="ObjectFit.ScaleDown"/>
+    }
+</MudStack>
+
+<MudButton Style="position: absolute; bottom: 5px; left:5px; right: 5px;" Variant="Variant.Filled" Color="Color.Primary" Disabled="isWorking" OnClick="async() => { Upload(); }">
+    @if (isWorking)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+    }
+    Upload
+</MudButton>
+
+@code {
+    [CascadingParameter]
+    public List<string> folderPath { get; set; } = new List<string>();
+    [Parameter]
+    public EventCallback OnFileUploaded { get; set; }
+
+    IBrowserFile? File { get; set; }
+    string? FileName { get; set; }
+    string? Base64Image { get; set; }
+    bool isPrivate { get; set; } = false;
+    bool createThumbnail { get; set; } = true;
+    byte[]? data { get; set; }
+    bool isWorking { get; set; } = false;
+
+    private async void UploadFiles(IBrowserFile file)
+    {
+        try
+        {
+            File = file;
+            long fileSize = file.Size;
+            data = new byte[(int)file.Size];
+            Stream stream = file.OpenReadStream(long.MaxValue);
+            Base64Image = Convert.ToBase64String(await CloudStorage.Worker.CreateThumbnail(stream, 128, 128));
+            stream.Dispose();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
+    }
+
+    private async void Upload()
+    {
+        try
+        {
+            isWorking = true;
+            if (File == null || string.IsNullOrEmpty(FileName) || string.IsNullOrEmpty(Base64Image))
+            {
+                return;
+            }
+
+            MemoryStream memStream = new MemoryStream();
+
+            FileUpload fileUpload = new FileUpload()
+            {
+                ContainerName = "pictures",
+                FileExtension = File.Name.Remove(0, File.Name.LastIndexOf('.')),
+                FileName = FileName,
+                IsPrivate = isPrivate,
+                CreateThumbnail = createThumbnail
+            };
+
+            string fileUploadContent = JsonConvert.SerializeObject(fileUpload);
+            memStream.Write(BitConverter.GetBytes(fileUploadContent.Length));
+            memStream.Write(Encoding.UTF8.GetBytes(fileUploadContent));
+
+            Stream stream = File.OpenReadStream(long.MaxValue);
+            byte[] buffer = new byte[512];
+            int bytesRead = 0;
+            do
+            {
+                bytesRead = await stream.ReadAsync(buffer, 0, 512);
+                memStream.Write(buffer, 0, bytesRead);
+            } while (bytesRead > 0);
+
+            HttpClient client = clientFactory.CreateClient("api");
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "/Blob");
+            memStream.Position = 0;
+            requestMessage.Content = new StreamContent(memStream);
+            //requestMessage.Content = new StringContent(fileUploadContent, System.Text.Encoding.UTF8, "application/json");
+
+            HttpResponseMessage responseMessage = await client.SendAsync(requestMessage);
+
+            if (responseMessage.IsSuccessStatusCode)
+            {
+                await OnFileUploaded.InvokeAsync();
+            }
+            memStream.Dispose();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
+        isWorking = false;
+    }
+
+    private string ImageSource()
+    {
+        return $"data:image/jpeg;base64, {Base64Image}";
+    }
+}

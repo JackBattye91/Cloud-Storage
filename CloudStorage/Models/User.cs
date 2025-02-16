@@ -12,6 +12,9 @@ namespace CloudStorage.Models
         [JsonProperty(PropertyName = "username")]
         public string Username { get; set; } = string.Empty;
 
+        [JsonProperty(PropertyName = "email")]
+        public string Email { get; set; } = string.Empty;
+
         [JsonProperty(PropertyName = "password")]
         public string Password { get; set; } = string.Empty;
 
@@ -20,5 +23,8 @@ namespace CloudStorage.Models
 
         [JsonProperty(PropertyName = "permissions")]
         public Permission Permissions { get; set; } = Permission.None;
+
+        [JsonProperty(PropertyName = "privateKey")]
+        public string PrivateKey { get; set; } = string.Empty;
     }
 }

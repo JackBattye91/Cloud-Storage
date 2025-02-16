@@ -1,0 +1,41 @@
+﻿@inject NavigationManager navManager;
+
+<MudStack AlignItems="AlignItems.Start" Row="true" Class="m-3">
+    @for(int c = 0; c < Breadcrumbs.Count; c++)
+    {
+        Breadcrumb crumb = Breadcrumbs[c];
+        @if (c != 0)
+        {
+            <MudItem Style="width: auto; text-align:center">
+                <MudGrid Class="ps-2 pe-2">
+                    <MudText>/</MudText>
+                </MudGrid>
+            </MudItem>
+        }
+
+        <MudItem Style="width: auto; text-align:center;" @onclick="async () => { await OnCrumbClicked(crumb); }">
+            <MudGrid Class="ps-2 pe-2">
+                <MudIcon Icon="@crumb.Icon" />
+                <MudText>@crumb.DisplayName</MudText>
+            </MudGrid>
+        </MudItem>
+        
+    }
+</MudStack>
+
+@code {
+    [Parameter]
+    public List<Breadcrumb> Breadcrumbs { get; set; } = new List<Breadcrumb>();
+
+    [Parameter]
+    public EventCallback<string> OnBreadcrumbClicked { get; set; }
+
+    private async Task OnCrumbClicked(Breadcrumb pCrumb)
+    {
+        int index = Breadcrumbs.FindIndex(x => x == pCrumb);
+        if (pCrumb.Link != null && (index + 1) != Breadcrumbs.Count)
+        {
+            await OnBreadcrumbClicked.InvokeAsync(pCrumb.Link);
+        }
+    }
+}

@@ -1,0 +1,99 @@
+﻿@rendermode InteractiveServer
+@inject ISessionStorageService sessionStorage;
+@inject ILocalStorageService localStorage;
+@inject ProtectedLocalStorage protectedLocalStorage
+@inject NavigationManager navManager;
+@inject ILogger<NavBar> logger;
+
+
+<MudAppBar Color="Color.Primary" Fixed="false">
+    <MudIconButton OnClick="() => { showMenuDrawer = !showMenuDrawer; }" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
+    <MudSpacer />
+
+    @if (user == null)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="/login" StartIcon="@Icons.Material.Filled.Login">Login/Register</MudButton>
+    }
+    else
+    {
+        <MudAvatar @onclick="() => { showProfileDrawer = !showProfileDrawer; }" Color="Color.Primary">@char.ToUpper(user.Username[0])</MudAvatar>
+    }
+</MudAppBar>
+
+@if (showMenuDrawer)
+{
+    <MudDrawer id="navDrawer" Open="true" OpenChanged="(isOpen) => { showMenuDrawer = isOpen; }" Anchor="Anchor.Left" Elevation="1" Variant="@DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <MudLink Href="/" Typo="Typo.h5">Cloud Storage</MudLink>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
+
+            @if (user != null)
+            {
+                <MudNavLink Href="/gallery" Match="NavLinkMatch.All">Gallery</MudNavLink>
+            }
+
+        </MudNavMenu>
+    </MudDrawer>
+}
+
+
+@if (user != null && showProfileDrawer)
+{
+    <MudDrawer id="profileDrawer" Open="true" OpenChanged="(isOpen) => { showProfileDrawer = isOpen; }" Anchor="Anchor.Right" Elevation="1" Variant="@DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h5">@user?.Username</MudText>
+        </MudDrawerHeader>
+        <MudDrawerContainer>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SignOut">Log Out</MudButton>
+        </MudDrawerContainer>
+    </MudDrawer>
+}
+
+@code {
+    bool showMenuDrawer = false;
+    bool showProfileDrawer = false;
+    IUser? user = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (user == null)
+            {
+                await AppState.Load(protectedLocalStorage);
+
+                user = AppState.Instance?.User;
+                if (user != null)
+                {
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task SignOut()
+    {
+        try
+        {
+            await protectedLocalStorage.DeleteAsync(Consts.Storage.USER);
+            await protectedLocalStorage.DeleteAsync(Consts.Storage.TOKEN);
+            AppState.Instance = null;
+            user = null;
+            navManager.NavigateTo("/", true);
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+        }
+    }
+}

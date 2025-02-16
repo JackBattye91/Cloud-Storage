@@ -11,6 +11,9 @@ namespace CloudStorage.Interfaces
         [JsonProperty(PropertyName = "username")]
         string Username { get; set; }
 
+        [JsonProperty(PropertyName = "email")]
+        string Email { get; set; }
+
         [JsonProperty(PropertyName = "password")]
         string Password { get; set; }
 
@@ -19,5 +22,8 @@ namespace CloudStorage.Interfaces
 
         [JsonProperty(PropertyName = "permissions")]
         Permission Permissions { get; set; }
+
+        [JsonProperty(PropertyName = "privateKey")]
+        string PrivateKey { get; set; }
     }
 }
