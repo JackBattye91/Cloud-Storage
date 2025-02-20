@@ -82,12 +82,14 @@ namespace CloudStorage.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadImage([FromHeader(Name = "Authorization")] string pBearerToken)
+        public async Task<IActionResult> UploadImage()
         {
             IBlobDetail? blobDetail = null;
             FileUpload? fileUpload = null;
             int detailsSize = 0;
             Stream? fileDataStream = null;
+            byte[] buffer = new byte[512];
+            int bytesRead = 0;
 
             try
             {
@@ -95,20 +97,14 @@ namespace CloudStorage.API.Controllers
                 string userId = jwtPayload.Subject;
                 IUser user = await _database.GetUserByIdAsync(userId);
 
-                if (rc.Success)
-                {
-                    byte[] buffer = new byte[512];
-                    int bytesRead = 0;
+                // Read details size
+                bytesRead = await Request.Body.ReadAsync(buffer, 0, 4);
+                detailsSize = BitConverter.ToInt32(buffer, 0);
 
-                    // Read details size
-                    bytesRead = await Request.Body.ReadAsync(buffer, 0, 4);
-                    detailsSize = BitConverter.ToInt32(buffer, 0);
-
-                    // read Upload Details
-                    await Request.Body.ReadAsync(buffer, 0, detailsSize);
-                    string detailsContent = Encoding.UTF8.GetString(buffer,0, detailsSize);
-                    fileUpload = JsonConvert.DeserializeObject<FileUpload>(detailsContent);
-                }
+                // Read Upload Details
+                await Request.Body.ReadAsync(buffer, 0, detailsSize);
+                string detailsContent = Encoding.UTF8.GetString(buffer,0, detailsSize);
+                fileUpload = JsonConvert.DeserializeObject<FileUpload>(detailsContent);
 
                 blobDetail = new BlobDetail
                 {
@@ -124,60 +120,18 @@ namespace CloudStorage.API.Controllers
                     Created = DateTime.UtcNow
                 };
 
-                try
-                {
-                    fileDataStream = await CloudStorage.Worker.CopyTo(Request.Body);
-                    fileDataStream.Seek(0, SeekOrigin.Begin);
+                fileDataStream = await CloudStorage.Worker.CopyTo(Request.Body);
+                fileDataStream.Seek(0, SeekOrigin.Begin);
 
-                    if (fileUpload!.CreateThumbnail)
-                    {
-                        BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
-                        byte[] data = await CloudStorage.Worker.CreateThumbnail(fileDataStream, Consts.Blob.IMAGE_SIZE, Consts.Blob.IMAGE_SIZE);
-                        BinaryData binaryData = new BinaryData(data);
-                        BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.Thumbnail}");
-                        await blobClient.UploadAsync(binaryData);
-                    }                        
-                }
-                catch(Exception ex)
+                if (fileUpload.CreateThumbnail)
                 {
-                    throw;
+                    await _blob.UploadThumbnailStream(blobDetail, fileDataStream);
                 }
 
-                if (fileUpload!.IsPrivate)
-                {
-                    MemoryStream memoryStream = new MemoryStream();
-                    BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blobDetail!.ContainerName);
-                    BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail!.BlobName}.{blobDetail.FileExtension}");
-
-                    Aes aes = Aes.Create();
-                    aes.Key = Convert.FromBase64String(user!.PrivateKey);
-                    aes.IV = Convert.FromBase64String(blobDetail.IV!);
-                    fileDataStream!.Seek(0, SeekOrigin.Begin);
-                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
-                    {
-                        int bytesRead = 0;
-                        byte[] buffer = new byte[512];
-                        do
-                        {
-                            bytesRead = await fileDataStream.ReadAsync(buffer, 0, 512);
-                            cryptoStream.Write(buffer, 0, bytesRead);
-                        } while (bytesRead > 0);
-
-                        memoryStream.Position = 0;
-                        await blobClient.UploadAsync(memoryStream);
-                    }
-
-                    memoryStream.Dispose();
-                }
-                else
-                {
-                    BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, blobDetail!.ContainerName);
-                    BlobClient blobClient = blobContainerClient.GetBlobClient($"{blobDetail.BlobName}.{blobDetail.FileExtension}");
-                    fileDataStream!.Seek(0, SeekOrigin.Begin);
-                    await blobClient.UploadAsync(fileDataStream);
-                }
-
+                await _blob.UploadStream(user, blobDetail, fileDataStream, fileUpload.IsPrivate);
                 await _database.CreateBlobDetailsByIdAsync(blobDetail);
+
+                return new OkResult();
             }
             catch (Exception ex) {
                 fileDataStream?.Dispose();
@@ -188,66 +142,32 @@ namespace CloudStorage.API.Controllers
 
         [HttpDelete]
         [Route("{id}")]
-        public async Task<IActionResult> DeleteImage([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string pBlobDetailId)
+        public async Task<IActionResult> DeleteImage([FromRoute(Name = "id")] string pBlobDetailId)
         {
-            IReturnCode rc = new ReturnCode();
-            IBlobDetail? blobDetail = null;
+            
             string? userId = null;
 
             try
             {
-                if (rc.Success)
-                {
-                    JwtPayload jwtPayload = Worker.GetJwtPayloadFromBearerToken(pBearerToken);
-                    userId = jwtPayload.Subject;
-                }
+                JwtPayload jwtPayload = Worker.GetJwtPayloadFromBearerToken(Request);
+                userId = jwtPayload.Subject;
 
-                if (rc.Success)
-                {
-                    IReturnCode<IBlobDetail> getBlobDetailRc = await NoSqlWrapper.GetItem<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, pBlobDetailId);
-
-                    if (getBlobDetailRc.Success)
-                    {
-                        blobDetail = getBlobDetailRc.Data;
-                    }
-
-                    if (getBlobDetailRc.Failed)
-                    {
-                        ErrorWorker.CopyErrors(getBlobDetailRc, rc);
-                    }
-                }
-
-                if (rc.Success)
-                {
-                    blobDetail!.Deleted = true;
-                    IReturnCode<IBlobDetail> updateBlobDetailRc = await NoSqlWrapper.UpdateItem<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, blobDetail!, blobDetail.Id, blobDetail.ContainerName);
-
-                    if (updateBlobDetailRc.Failed)
-                    {
-                        ErrorWorker.CopyErrors(updateBlobDetailRc, rc);
-                    }
-                }
-
+                IBlobDetail blobDetail = await _database.GetBlobDetailsByIdAsync(userId, pBlobDetailId);
+                blobDetail.Deleted = true;
+                await _database.UpdateBlobDetail(blobDetail);
                 return new OkResult();
             }
             catch (Exception ex)
             {
-                rc.AddError(new Error(5, ex));
+                _logger.LogError(ex, ex.Message);
+                throw;
             }
-
-            if (rc.Failed)
-            {
-                ErrorWorker.LogErrors(Logger, rc);
-            }
-
-            return StatusCode(500);
         }
 
         [HttpGet]
         [Route("thumbnail/{id}")]
         public async Task<Stream?> GetThumbnail([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string pBlobDetailId)
         {
-            IReturnCode rc = new ReturnCode();
             IBlobDetail? blobDetail = null;
             string? userId = null;
 

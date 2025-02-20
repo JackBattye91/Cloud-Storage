@@ -24,6 +24,7 @@ namespace CloudStorage.API.Services
         Task<IEnumerable<BlobDetail>> GetBlobDetailsByUserIdAsync(string userId);
         Task<BlobDetail> GetBlobDetailsByIdAsync(string id, string userId);
         Task CreateBlobDetailsByIdAsync(IBlobDetail blobDetail);
+        Task UpdateBlobDetail(IBlobDetail blobDetail);
     }
 
     public class CosmosService : IDatabaseService
@@ -280,6 +281,24 @@ namespace CloudStorage.API.Services
                 if (response.StatusCode != System.Net.HttpStatusCode.Created)
                 {
                     throw new Exception("Unable to insert Blob Detail");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
+        }
+        public async Task UpdateBlobDetail(IBlobDetail blobDetail)
+        {
+            try
+            {
+                Container blobContainer = _client.GetContainer(_settings.Database.DatabaseName, Consts.Database.PICTURES_CONTAINER_NAME);
+                ItemResponse<IBlobDetail> response = await blobContainer.UpsertItemAsync(blobDetail, new PartitionKey(blobDetail.UserId));
+
+                if (response.StatusCode != System.Net.HttpStatusCode.Created)
+                {
+                    throw new Exception("Unable to update Blob Detail");
                 }
             }
             catch (Exception ex)
