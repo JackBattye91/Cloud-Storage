@@ -1,5 +1,4 @@
 ﻿using CloudStorage.API.Models;
-using JB.Common.Errors;
 using Newtonsoft.Json;
 using System.Text;
 using SixLabors.ImageSharp;
@@ -13,22 +12,23 @@ namespace CloudStorage.API
 {
     public static class Worker
     {
-        public static JwtPayload GetJwtPayloadFromBearerToken(string pBearerToken)
+        public static JwtPayload GetJwtPayloadFromBearerToken(HttpRequest request)
         {
-            if (string.IsNullOrEmpty(pBearerToken) || !pBearerToken.StartsWith("bearer", StringComparison.CurrentCultureIgnoreCase))
+            string bearerTokenHeader = request.Headers.Authorization.FirstOrDefault() ?? throw new Exception("Unable to get Authorization header");
+
+            if (string.IsNullOrEmpty(bearerTokenHeader) || !bearerTokenHeader.StartsWith("bearer", StringComparison.CurrentCultureIgnoreCase))
             {
-                throw new JBException("No bearer token supplied");
+                throw new Exception("No bearer token supplied");
             }
 
-            string bearerToken = pBearerToken.Remove(0, 6).Trim();
+            string bearerToken = bearerTokenHeader.Remove(0, 6).Trim();
             string[] tokenParts = bearerToken.Split('.');
 
             if (tokenParts.Length <= 1)
             {
-                throw new JBException("Unable to get payload");
+                throw new Exception("Unable to get payload");
             }
             string bearerPayload = tokenParts[1];
-
 
             int paddingRequired = bearerPayload.Length % 4;
             if (paddingRequired > 0)
@@ -50,18 +50,22 @@ namespace CloudStorage.API
                 bearerPayload = sBuilder.ToString();
             }
 
-
             string jsonBearerToken = Encoding.UTF8.GetString(Convert.FromBase64String(bearerPayload));
-
             JwtPayload? jwtPayload = JsonConvert.DeserializeObject<JwtPayload>(jsonBearerToken);
 
             if (jwtPayload == null)
             {
-                throw new JBException("Unable to deserialize JWT");
+                throw new Exception("Unable to deserialize JWT");
             }
 
             return jwtPayload;
         }
+
+        public static string? GetSubject(HttpRequest request)
+        {
+
+            return null;
+        } 
 
         public static string GetContentType(string pFileExtension)
         {
