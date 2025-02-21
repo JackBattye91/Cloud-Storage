@@ -1,8 +1,7 @@
-﻿using JB.Email.Interfaces;
-
+﻿
 namespace CloudStorage.API.Models
 {
-    public class EmailHeader : IEmailHeader
+    public class EmailHeader
     {
         public string Sender { get; set; } = string.Empty;
         public IEnumerable<string> To { get; set; } = new List<string>();

@@ -10,7 +10,7 @@ namespace CloudStorage.Interfaces
     {
         string TokenId { get; set; }
         string WebToken { get; set; }
-        string RefreshToken { get; set; }
+        string? RefreshToken { get; set; }
         DateTime Expires { get; set; }
     }
 }

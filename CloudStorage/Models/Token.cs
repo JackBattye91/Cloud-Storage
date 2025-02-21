@@ -8,7 +8,7 @@ namespace CloudStorage.Models
     {
         public string TokenId { get; set; } = string.Empty;
         public string WebToken { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty;
+        public string? RefreshToken { get; set; }
         public DateTime Expires { get; set; }
     }
 }
