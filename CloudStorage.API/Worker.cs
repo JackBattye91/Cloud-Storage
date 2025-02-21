@@ -1,5 +1,4 @@
 ﻿using CloudStorage.API.Models;
-using JB.Common.Errors;
 using Newtonsoft.Json;
 using System.Text;
 using SixLabors.ImageSharp;

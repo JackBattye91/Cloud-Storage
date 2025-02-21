@@ -12,6 +12,10 @@ namespace CloudStorage.API.Services
         Task<IUser> GetUserByUsernameAsync(string username);
         Task<IUser> GetUserByIdAsync(string id);
         Task CreateUserAsync(IUser user);
+        Task<IUser> UpdateUserAsync(IUser user);
+        Task DeleteUserAsync(string userId);
+        Task<bool> DoesUsernameExist(string username);
+        Task<bool> DoesEmailExist(string email);
 
         // Refresh Tokens
         Task InsertRefreshTokenAsync(RefreshToken refreshToken);
@@ -25,6 +29,7 @@ namespace CloudStorage.API.Services
         Task<BlobDetail> GetBlobDetailsByIdAsync(string id, string userId);
         Task CreateBlobDetailsByIdAsync(IBlobDetail blobDetail);
         Task UpdateBlobDetail(IBlobDetail blobDetail);
+        
     }
 
     public class CosmosService : IDatabaseService
@@ -112,6 +117,113 @@ namespace CloudStorage.API.Services
                 {
                     throw new Exception("Unable to insert user");
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<IUser> UpdateUserAsync(IUser user)
+        {
+            try
+            {
+                Container refreshContainer = _client.GetContainer(_settings.Database.DatabaseName, Consts.Database.USER_CONTAINER_NAME);
+                ItemResponse<IUser> response = await refreshContainer.UpsertItemAsync(user, new PartitionKey(user.Id));
+
+                if (response.StatusCode != System.Net.HttpStatusCode.Created)
+                {
+                    throw new Exception("Unable to insert user");
+                }
+
+                return user;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
+        }
+
+        public async Task DeleteUserAsync(string userId)
+        {
+            try
+            {
+                Container refreshContainer = _client.GetContainer(_settings.Database.DatabaseName, Consts.Database.USER_CONTAINER_NAME);
+                ItemResponse<IUser> response = await refreshContainer.DeleteItemAsync<IUser>(userId, new PartitionKey(userId));
+
+                if (response.StatusCode != System.Net.HttpStatusCode.Created)
+                {
+                    throw new Exception("Unable to insert user");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<bool> DoesUsernameExist(string username)
+        {
+            try
+            {
+                Container userContainer = _client.GetContainer(_settings.Database.DatabaseName, Consts.Database.USER_CONTAINER_NAME);
+                QueryDefinition query = new QueryDefinition($"SELECT * FROM c WHERE c.username = '{username}'");
+
+                using (FeedIterator<CloudStorage.Models.User>? feedIterator = userContainer.GetItemQueryIterator<CloudStorage.Models.User>(query))
+                {
+                    if (feedIterator.HasMoreResults == true)
+                    {
+                        FeedResponse<CloudStorage.Models.User> resultSet = await feedIterator.ReadNextAsync();
+                        IUser? user = resultSet.FirstOrDefault();
+
+                        if (string.Equals(user?.Username, username, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
+        }
+        public async Task<bool> DoesEmailExist(string email)
+        {
+            try
+            {
+                Container userContainer = _client.GetContainer(_settings.Database.DatabaseName, Consts.Database.USER_CONTAINER_NAME);
+                QueryDefinition query = new QueryDefinition($"SELECT * FROM c WHERE c.email = '{email}'");
+
+                using (FeedIterator<CloudStorage.Models.User>? feedIterator = userContainer.GetItemQueryIterator<CloudStorage.Models.User>(query))
+                {
+                    if (feedIterator.HasMoreResults == true)
+                    {
+                        FeedResponse<CloudStorage.Models.User> resultSet = await feedIterator.ReadNextAsync();
+                        IUser? user = resultSet.FirstOrDefault();
+
+                        if (string.Equals(user?.Email, email, StringComparison.CurrentCultureIgnoreCase))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                return false;
             }
             catch (Exception ex)
             {

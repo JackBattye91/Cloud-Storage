@@ -5,14 +5,18 @@ using CloudStorage.Models;
 using System.Security.Cryptography;
 using CloudStorage;
 using Microsoft.Azure.Cosmos;
+using Azure;
 
 namespace CloudStorage.API.Services
 {
     public interface IBlobService
     {
         Stream GetBlobStream(IUser user, IBlobDetail blobDetail);
-        Task UploadThumbnailStream(IBlobDetail blobDetail, Stream stream);
+        Stream GetBlobThumbnail(IBlobDetail blobDetail);
+
         Task UploadStream(IUser user, IBlobDetail blobDetail, Stream stream, bool isPrivate);
+        Task UploadThumbnailStream(IBlobDetail blobDetail, Stream stream);
+        
     }
     public class BlobService : IBlobService
     {
@@ -71,6 +75,27 @@ namespace CloudStorage.API.Services
                 _logger.LogError(ex, ex.Message);
                 throw;
             }
+        }
+        public Stream GetBlobThumbnail(IBlobDetail blobDetail)
+        {
+            try
+            {
+                MemoryStream memoryStream = new MemoryStream();
+
+                BlobContainerClient blobContainerClient = new BlobContainerClient(_settings.BlobStorage.ConnectionString, "thumbnails");
+                BlobClient blobClient = blobContainerClient.GetBlobClient(blobDetail.Thumbnail);
+
+                blobClient.DownloadTo(memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin);
+
+                return memoryStream;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, ex.Message);
+                throw;
+            }
+           
         }
 
         public async Task UploadThumbnailStream(IBlobDetail blobDetail, Stream stream)
@@ -133,5 +158,6 @@ namespace CloudStorage.API.Services
                 throw;
             }
         }
+
     }
 }

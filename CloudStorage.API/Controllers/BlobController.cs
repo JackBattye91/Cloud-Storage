@@ -5,9 +5,6 @@ using Azure.Storage.Blobs;
 using CloudStorage.API.Models;
 using CloudStorage.Models;
 using Microsoft.Extensions.Options;
-using JB.NoSqlDatabase;
-using JB.Common;
-using JB.Common.Errors;
 using CloudStorage.API.Consts;
 using Microsoft.Extensions.Logging;
 using CloudStorage.Interfaces;
@@ -166,85 +163,41 @@ namespace CloudStorage.API.Controllers
 
         [HttpGet]
         [Route("thumbnail/{id}")]
-        public async Task<Stream?> GetThumbnail([FromHeader(Name = "Authorization")] string pBearerToken, [FromRoute(Name = "id")] string pBlobDetailId)
+        public async Task<Stream?> GetThumbnail([FromRoute(Name = "id")] string blobDetailId)
         {
-            IBlobDetail? blobDetail = null;
-            string? userId = null;
-
             try
             {
-                if (rc.Success)
+                JwtPayload jwtPayload = Worker.GetJwtPayloadFromBearerToken(Request);
+                string userId = jwtPayload.Subject;
+                IBlobDetail blobDetail = await _database.GetBlobDetailsByIdAsync(blobDetailId, userId);
+
+                if (!string.IsNullOrEmpty(blobDetail!.Thumbnail))
                 {
-                    JwtPayload jwtPayload = Worker.GetJwtPayloadFromBearerToken(pBearerToken);
-                    userId = jwtPayload.Subject;
+                    Stream thumbnailStream = _blob.GetBlobThumbnail(blobDetail);
+
+                    Response.ContentType = Worker.GetContentType(blobDetail.FileExtension);
+                    this.Response.ContentType = "image/jpeg";
+                    return thumbnailStream;
                 }
-
-                if (rc.Success)
+                else
                 {
-                    string query = $"SELECT * FROM c WHERE c.id = '{pBlobDetailId}' AND c.userId = '{userId}' AND c.deleted = false";
-                    IReturnCode<IList<IBlobDetail>> getBlobDetailRc = await NoSqlWrapper.GetItems<IBlobDetail, BlobDetail>(Consts.Database.DATABASE, Database.PICTURES_CONTAINER_NAME, query);
-
-                    if (getBlobDetailRc.Success)
-                    {
-                        if (getBlobDetailRc.Data?.Count > 0)
-                        {
-                            blobDetail = getBlobDetailRc.Data[0];
-                        }
-                        else
-                        {
-                            rc.AddError(new NetworkError(45, System.Net.HttpStatusCode.NotFound));
-                        }
-                    }
-
-                    if (getBlobDetailRc.Failed)
-                    {
-                        ErrorWorker.CopyErrors(getBlobDetailRc, rc);
-                    }
-                }
-
-                if (rc.Success)
-                {
-                    if (!string.IsNullOrEmpty(blobDetail!.Thumbnail))
-                    {
-                        MemoryStream memoryStream = new MemoryStream();
-
-                        BlobContainerClient blobContainerClient = new BlobContainerClient(AppSettings.BlobStorage.ConnectionString, "thumbnails");
-                        BlobClient blobClient = blobContainerClient.GetBlobClient(blobDetail!.Thumbnail);
-
-                        blobClient.DownloadTo(memoryStream);
-                        memoryStream.Seek(0, SeekOrigin.Begin);
-
-                        Response.ContentType = Worker.GetContentType(blobDetail.FileExtension);
-                        this.Response.ContentType = "image/jpeg";
-                        return memoryStream;
-                    }
-                    else
-                    {
-                        Response.StatusCode = 404;
-                        return null;
-                    }
+                    Response.StatusCode = 404;
+                    return null;
                 }
             }
             catch (Exception ex)
             {
-                rc.AddError(new Error(3, ex));
+                _logger.LogError(ex, ex.Message);
+                throw;
             }
-
-            if (rc.Failed)
-            {
-                ErrorWorker.LogErrors(Logger, rc);
-            }
-
-            Response.StatusCode = 500;
-            return null;
         }
 
+        /*
         [HttpGet]
         [Route("genThumbnails")]
         [AllowAnonymous]
         public async Task<IActionResult> GenerateThumbnails([FromHeader(Name = "ApiKey")] string pApiKey)
         {
-            IReturnCode rc = new ReturnCode();
             IList<IBlobDetail> blobDetailsList = new List<IBlobDetail>();
 
             try
@@ -324,5 +277,6 @@ namespace CloudStorage.API.Controllers
 
             return StatusCode(500);
         }
+        */
     }
 }
